@@ -65,6 +65,13 @@ const CHARACTERS = {
             if (other) {
                 player.x = other.facingRight ? other.x - 40 : other.x + other.width + 10;
                 player.facingRight = other.x > player.x;
+                
+                // Deal damage
+                ws.send(JSON.stringify({
+                    type: 'ATTACK_HIT',
+                    targetId: otherId,
+                    damage: 35
+                }));
             }
             player.action = 'ultimate';
             player.actionTimer = 20;
@@ -72,28 +79,72 @@ const CHARACTERS = {
     },
     FrostMage: {
         ultimateSkill: function(player) {
-            // Blizzard storm (slows and damages)
+            // Blizzard storm (damages)
+            const otherId = player.id === 'player1' ? 'player2' : 'player1';
+            const other = players[otherId];
+            if (other) {
+                player.facingRight = other.x > player.x;
+                ws.send(JSON.stringify({
+                    type: 'ATTACK_HIT',
+                    targetId: otherId,
+                    damage: 30
+                }));
+            }
             player.action = 'ultimate';
             player.actionTimer = 40;
         }
     },
     FlameBerserker: {
         ultimateSkill: function(player) {
-            // Inferno Rage (speed and damage boost)
+            // Inferno Rage (AoE damage)
+            const otherId = player.id === 'player1' ? 'player2' : 'player1';
+            const other = players[otherId];
+            if (other) {
+                player.facingRight = other.x > player.x;
+                if (Math.abs(player.x - other.x) < 200) {
+                    ws.send(JSON.stringify({
+                        type: 'ATTACK_HIT',
+                        targetId: otherId,
+                        damage: 40
+                    }));
+                }
+            }
             player.action = 'ultimate';
             player.actionTimer = 60;
         }
     },
     TechGuardian: {
         ultimateSkill: function(player) {
-            // Barrier Dome
+            // Barrier Dome (Damages nearby)
+            const otherId = player.id === 'player1' ? 'player2' : 'player1';
+            const other = players[otherId];
+            if (other) {
+                player.facingRight = other.x > player.x;
+                if (Math.abs(player.x - other.x) < 150) {
+                    ws.send(JSON.stringify({
+                        type: 'ATTACK_HIT',
+                        targetId: otherId,
+                        damage: 25
+                    }));
+                }
+            }
             player.action = 'ultimate';
             player.actionTimer = 60;
         }
     },
     StormArcher: {
         ultimateSkill: function(player) {
-            // Thunder Rain
+            // Thunder Rain (Global hit)
+            const otherId = player.id === 'player1' ? 'player2' : 'player1';
+            const other = players[otherId];
+            if (other) {
+                player.facingRight = other.x > player.x;
+                ws.send(JSON.stringify({
+                    type: 'ATTACK_HIT',
+                    targetId: otherId,
+                    damage: 35
+                }));
+            }
             player.action = 'ultimate';
             player.actionTimer = 30;
         }
@@ -340,11 +391,21 @@ class Player {
                 this.action = 'attack';
                 this.actionTimer = 15;
                 this.attackCooldown = 30; // ~0.5 seconds at 60fps
+                this.vx = 0; // Stop moving
+                
+                // Automatically face the opponent when attacking
+                const otherId = this.id === 'player1' ? 'player2' : 'player1';
+                const other = players[otherId];
+                if (other) {
+                    this.facingRight = other.x > this.x;
+                }
+                
                 this.checkAttackHit();
             }
 
             // Ultimate
             if (keys['e'] && this.ultimateCooldown === 0) {
+                this.vx = 0; // Stop moving
                 this.config.ultimateSkill(this);
                 this.ultimateCooldown = this.maxUltimateCooldown;
             }
@@ -432,8 +493,8 @@ class Player {
             const cx = this.facingRight ? this.x + this.width : this.x;
             const cy = this.y + this.height / 2;
             
-            const startAngle = this.facingRight ? -Math.PI / 2 : Math.PI / 2;
-            const endAngle = this.facingRight ? -Math.PI / 2 + (Math.PI * progress) : Math.PI / 2 - (Math.PI * progress);
+            const startAngle = -Math.PI / 2;
+            const endAngle = this.facingRight ? startAngle + (Math.PI * progress) : startAngle - (Math.PI * progress);
             
             ctx.arc(cx, cy, 35, startAngle, endAngle, !this.facingRight);
             ctx.stroke();
