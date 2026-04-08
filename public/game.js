@@ -69,6 +69,7 @@ const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
 const screens = {
+    start: document.getElementById('start-screen'),
     menu: document.getElementById('main-menu'),
     lobby: document.getElementById('lobby-screen'),
     select: document.getElementById('character-select'),
@@ -956,14 +957,13 @@ function gameLoop(timestamp) {
 async function init() {
     await loadCharacterData();
     setupMobileControls();
-    showScreen('menu');
+    showScreen('start');
     
     // Start music and lock orientation on first interaction
-    window.addEventListener('click', () => {
-        if (gameState === 'MENU' || gameState === 'LOBBY' || gameState === 'SELECT') {
-            if (menuMusic.paused) {
-                menuMusic.play().catch(e => {});
-            }
+    document.getElementById('btn-start-game').addEventListener('click', () => {
+        showScreen('menu');
+        if (menuMusic.paused) {
+            menuMusic.play().catch(e => {});
         }
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
