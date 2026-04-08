@@ -573,6 +573,16 @@ window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 function showScreen(screenName) {
     Object.values(screens).forEach(s => s.classList.remove('active'));
     if(screens[screenName]) screens[screenName].classList.add('active');
+    
+    // Update tab title based on screen
+    const titles = {
+        'menu': 'Main Menu - Pixel Fighter',
+        'lobby': 'Lobby - Pixel Fighter',
+        'select': 'Character Select - Pixel Fighter',
+        'hud': 'Battle! - Pixel Fighter',
+        'gameOver': 'Game Over - Pixel Fighter'
+    };
+    document.title = titles[screenName] || 'Pixel Platform Fighter';
 }
 
 function updateHUD() {
