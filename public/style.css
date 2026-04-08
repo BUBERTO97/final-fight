@@ -129,6 +129,42 @@ input {
     line-height: 1.5;
 }
 
+.ult-name {
+    font-size: 8px;
+    color: #f1c40f;
+    margin-top: 10px;
+    text-transform: uppercase;
+    position: relative;
+    cursor: help;
+}
+
+.ult-name::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px;
+    border: 1px solid #f1c40f;
+    border-radius: 4px;
+    font-size: 8px;
+    text-transform: none;
+    width: 150px;
+    text-align: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.ult-name:hover::after {
+    visibility: visible;
+    opacity: 1;
+}
+
 #game-hud {
     position: absolute;
     top: 0;

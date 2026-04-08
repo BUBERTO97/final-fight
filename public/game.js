@@ -58,6 +58,7 @@ const screens = {
 const CHARACTERS = {
     PixelKnight: {
         name: 'PixelKnight',
+        ultimateName: 'Dash Slice',
         hp: 100,
         attackDamage: 10,
         speed: 5,
@@ -74,6 +75,7 @@ const CHARACTERS = {
     },
     Mage: {
         name: 'Mage',
+        ultimateName: 'Arcane Nova',
         hp: 80,
         attackDamage: 15,
         speed: 4,
@@ -89,6 +91,7 @@ const CHARACTERS = {
     },
     Tank: {
         name: 'Tank',
+        ultimateName: 'Iron Shield',
         hp: 150,
         attackDamage: 8,
         speed: 3,
@@ -104,6 +107,14 @@ const CHARACTERS = {
     }
 };
 
+// --- Preload Idle Sprites ---
+const globalIdleSprites = {};
+Object.keys(CHARACTERS).forEach(charKey => {
+    const img = new Image();
+    img.src = `/sprites/${charKey}_idle.svg`;
+    globalIdleSprites[charKey] = img;
+});
+
 // --- Sprite Class ---
 /*
  * The Sprite class handles loading SVG files from the /sprites/ directory.
@@ -116,11 +127,22 @@ class Sprite {
         this.images = {};
         this.loaded = false;
         
+        // Use preloaded idle sprite if available
+        if (globalIdleSprites[characterName]) {
+            this.images['idle'] = globalIdleSprites[characterName];
+        }
+
         // Define states we want to load
         const states = ['idle', 'run', 'attack', 'ultimate'];
         let loadedCount = 0;
         
         states.forEach(state => {
+            // Skip idle if already set from global cache (optional, but cleaner)
+            if (state === 'idle' && this.images['idle']) {
+                loadedCount++;
+                return;
+            }
+
             const img = new Image();
             // Pathing assumes /sprites/ folder at the root of the server
             img.src = `/sprites/${characterName}_${state}.svg`;
@@ -187,11 +209,13 @@ class Player {
         this.hitTimer = 0;
         this.sprite = new Sprite(charConfig.name);
         this.attackCooldown = 0;
+        this.ultimateCooldown = 0;
     }
 
     update(keys) {
         if (this.hitTimer > 0) this.hitTimer--;
         if (this.attackCooldown > 0) this.attackCooldown--;
+        if (this.ultimateCooldown > 0) this.ultimateCooldown--;
 
         if (this.actionTimer > 0) {
             this.actionTimer--;
@@ -200,8 +224,8 @@ class Player {
             }
         }
 
-        // Only allow movement if not in a heavy action
-        if (this.action === 'idle' || this.action === 'run') {
+        // Only allow movement if not in a heavy action and not hit
+        if ((this.action === 'idle' || this.action === 'run') && this.hitTimer === 0) {
             // Horizontal Movement
             if (keys['a'] || keys['ArrowLeft']) {
                 this.vx = -this.config.speed;
@@ -230,13 +254,20 @@ class Player {
             }
 
             // Ultimate
-            if (keys['e']) {
+            if (keys['e'] && this.ultimateCooldown === 0) {
                 this.config.ultimateSkill(this);
+                this.ultimateCooldown = 300; // 5 seconds at 60fps
             }
         }
 
         // Apply Physics
         this.vy += GRAVITY;
+        
+        // Apply horizontal friction if hit (stunned)
+        if (this.hitTimer > 0) {
+            this.vx *= 0.9;
+        }
+
         this.x += this.vx;
         this.y += this.vy;
 
@@ -414,10 +445,24 @@ function connectWebSocket() {
                 if (players['player1'] && data.player1 < players['player1'].hp) {
                     players['player1'].hitTimer = 15;
                     playHitSound();
+                    
+                    // Apply knockback if it's me
+                    if (myPlayerId === 'player1' && players['player2']) {
+                        const dir = players['player1'].x > players['player2'].x ? 1 : -1;
+                        players['player1'].vx = dir * 8;
+                        players['player1'].vy = -4;
+                    }
                 }
                 if (players['player2'] && data.player2 < players['player2'].hp) {
                     players['player2'].hitTimer = 15;
                     playHitSound();
+
+                    // Apply knockback if it's me
+                    if (myPlayerId === 'player2' && players['player1']) {
+                        const dir = players['player2'].x > players['player1'].x ? 1 : -1;
+                        players['player2'].vx = dir * 8;
+                        players['player2'].vy = -4;
+                    }
                 }
                 if (players['player1']) players['player1'].hp = data.player1;
                 if (players['player2']) players['player2'].hp = data.player2;
