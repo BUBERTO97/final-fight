@@ -1,0 +1,19 @@
+{
+  "id": "Tank",
+  "name": "Tank",
+  "ultimateName": "Iron Shield",
+  "description": "Heavy hitter",
+  "ultimateDescription": "Activate an impenetrable energy shield that reduces incoming damage for a short time.",
+  "hp": 150,
+  "attackDamage": 8,
+  "speed": 3,
+  "jumpForce": 9,
+  "width": 70,
+  "height": 80,
+  "color": "#2ecc71",
+  "svgAttributes": {
+    "viewBox": "0 0 70 80",
+    "preserveAspectRatio": "xMidYMid meet",
+    "xmlns": "http://www.w3.org/2000/svg"
+  }
+}

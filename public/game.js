@@ -55,17 +55,9 @@ const screens = {
 };
 
 // --- Character Configurations ---
+// Logic is kept here, but stats and visuals are loaded from JSON
 const CHARACTERS = {
     PixelKnight: {
-        name: 'PixelKnight',
-        ultimateName: 'Dash Slice',
-        hp: 100,
-        attackDamage: 10,
-        speed: 5,
-        jumpForce: 12,
-        width: 50,
-        height: 70,
-        color: '#e74c3c', // Fallback color if SVG fails
         ultimateSkill: function(player) {
             // Dash slice
             player.vx = player.facingRight ? 20 : -20;
@@ -74,15 +66,6 @@ const CHARACTERS = {
         }
     },
     Mage: {
-        name: 'Mage',
-        ultimateName: 'Arcane Nova',
-        hp: 80,
-        attackDamage: 15,
-        speed: 4,
-        jumpForce: 10,
-        width: 40,
-        height: 70,
-        color: '#9b59b6',
         ultimateSkill: function(player) {
             // Circular explosion
             player.action = 'ultimate';
@@ -90,15 +73,6 @@ const CHARACTERS = {
         }
     },
     Tank: {
-        name: 'Tank',
-        ultimateName: 'Iron Shield',
-        hp: 150,
-        attackDamage: 8,
-        speed: 3,
-        jumpForce: 9,
-        width: 70,
-        height: 80,
-        color: '#2ecc71',
         ultimateSkill: function(player) {
             // Temporary shield
             player.action = 'ultimate';
@@ -109,23 +83,78 @@ const CHARACTERS = {
 
 // --- Preload Idle Sprites ---
 const globalIdleSprites = {};
-Object.keys(CHARACTERS).forEach(charKey => {
-    const img = new Image();
-    img.src = `/sprites/${charKey}_idle.svg`;
-    globalIdleSprites[charKey] = img;
-});
+
+// --- Load Character Data ---
+async function loadCharacterData() {
+    const promises = Object.keys(CHARACTERS).map(async (charKey) => {
+        try {
+            const response = await fetch(`/characters/${charKey}.json`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            
+            // Merge JSON data into CHARACTERS object
+            Object.assign(CHARACTERS[charKey], data);
+            
+            // Preload idle sprite
+            const img = new Image();
+            img.src = `/sprites/${charKey}_idle.svg`;
+            globalIdleSprites[charKey] = img;
+        } catch (error) {
+            console.error(`Failed to load data for ${charKey}:`, error);
+        }
+    });
+    await Promise.all(promises);
+    renderCharacterCards();
+}
+
+function renderCharacterCards() {
+    const container = document.querySelector('.character-list');
+    if (!container) return;
+    
+    container.innerHTML = ''; // Clear existing
+    
+    Object.keys(CHARACTERS).forEach(charKey => {
+        const char = CHARACTERS[charKey];
+        if (!char.name) return; // Skip if data not loaded
+        
+        const card = document.createElement('div');
+        card.className = 'char-card';
+        card.dataset.char = charKey;
+        
+        card.innerHTML = `
+            <h3>${char.name}</h3>
+            <p>${char.description || ''}</p>
+            <div class="ult-name" data-tooltip="${char.ultimateDescription || ''}">Ult: ${char.ultimateName || ''}</div>
+        `;
+        
+        card.addEventListener('click', () => {
+            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            myCharacter = charKey;
+            
+            ws.send(JSON.stringify({
+                type: 'SELECT_CHARACTER',
+                character: myCharacter
+            }));
+            
+            document.getElementById('select-message').innerText = 'Ready! Waiting for opponent...';
+        });
+        
+        container.appendChild(card);
+    });
+}
 
 // --- Sprite Class ---
 /*
  * The Sprite class handles loading SVG files from the /sprites/ directory.
- * If the SVG file doesn't exist, it falls back to drawing a colored rectangle.
- * In a real project, you would place files like 'PixelKnight_idle.svg' in the /public/sprites/ folder.
+ * It uses character configuration from JSON for dimensions and fallback colors.
  */
 class Sprite {
     constructor(characterName) {
         this.characterName = characterName;
         this.images = {};
         this.loaded = false;
+        this.config = CHARACTERS[characterName] || {};
         
         // Use preloaded idle sprite if available
         if (globalIdleSprites[characterName]) {
@@ -137,21 +166,19 @@ class Sprite {
         let loadedCount = 0;
         
         states.forEach(state => {
-            // Skip idle if already set from global cache (optional, but cleaner)
+            // Skip idle if already set from global cache
             if (state === 'idle' && this.images['idle']) {
                 loadedCount++;
                 return;
             }
 
             const img = new Image();
-            // Pathing assumes /sprites/ folder at the root of the server
             img.src = `/sprites/${characterName}_${state}.svg`;
             img.onload = () => {
                 loadedCount++;
                 if (loadedCount === states.length) this.loaded = true;
             };
             img.onerror = () => {
-                // If SVG fails to load, we just won't draw it (fallback to rect)
                 loadedCount++;
                 if (loadedCount === states.length) this.loaded = true;
             };
@@ -171,12 +198,13 @@ class Sprite {
             x = 0;
             y = 0;
         }
-        
+
         if (img && img.complete && img.naturalWidth > 0) {
             ctx.drawImage(img, x, y, width, height);
         } else {
-            // Fallback to colored rectangle if SVG is missing
-            ctx.fillStyle = fallbackColor;
+            // Fallback: use color from JSON
+            const color = this.config.color || fallbackColor;
+            ctx.fillStyle = color;
             ctx.fillRect(x, y, width, height);
             
             // Draw a little eye to show direction
@@ -507,21 +535,6 @@ document.getElementById('btn-join').addEventListener('click', () => {
     }
 });
 
-document.querySelectorAll('.char-card').forEach(card => {
-    card.addEventListener('click', () => {
-        document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        myCharacter = card.dataset.char;
-        
-        ws.send(JSON.stringify({
-            type: 'SELECT_CHARACTER',
-            character: myCharacter
-        }));
-        
-        document.getElementById('select-message').innerText = 'Ready! Waiting for opponent...';
-    });
-});
-
 document.getElementById('btn-game-over-ok').addEventListener('click', () => {
     if (ws) {
         ws.close();
@@ -577,4 +590,8 @@ function gameLoop(timestamp) {
 }
 
 // Initialize
-showScreen('menu');
+async function init() {
+    await loadCharacterData();
+    showScreen('menu');
+}
+init();

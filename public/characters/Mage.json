@@ -1,0 +1,19 @@
+{
+  "id": "Mage",
+  "name": "Mage",
+  "ultimateName": "Arcane Nova",
+  "description": "Ranged attacker",
+  "ultimateDescription": "Release a powerful burst of arcane energy in a circular area around you.",
+  "hp": 80,
+  "attackDamage": 15,
+  "speed": 4,
+  "jumpForce": 10,
+  "width": 40,
+  "height": 70,
+  "color": "#9b59b6",
+  "svgAttributes": {
+    "viewBox": "0 0 40 70",
+    "preserveAspectRatio": "xMidYMid meet",
+    "xmlns": "http://www.w3.org/2000/svg"
+  }
+}
