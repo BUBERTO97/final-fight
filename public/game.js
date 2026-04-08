@@ -8,6 +8,11 @@ const GRAVITY = 0.6;
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
 
+// Menu Music
+const menuMusic = new Audio('https://ia800604.us.archive.org/24/items/retro-game-music-pack/Retro%20Game%20Music%20Pack/Menu%20Theme.mp3');
+menuMusic.loop = true;
+menuMusic.volume = 0.4;
+
 function playHitSound() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const oscillator = audioCtx.createOscillator();
@@ -25,6 +30,23 @@ function playHitSound() {
     
     oscillator.start();
     oscillator.stop(audioCtx.currentTime + 0.1);
+}
+
+function updateMusic(screenName) {
+    // Resume audio context on interaction
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+
+    const menuScreens = ['menu', 'lobby', 'select', 'gameOver'];
+    if (menuScreens.includes(screenName)) {
+        if (menuMusic.paused) {
+            menuMusic.play().catch(e => console.log("Music play blocked until interaction"));
+        }
+    } else {
+        menuMusic.pause();
+        menuMusic.currentTime = 0;
+    }
 }
 
 // --- WebSocket Setup ---
@@ -592,6 +614,9 @@ function showScreen(screenName) {
     Object.values(screens).forEach(s => s.classList.remove('active'));
     if(screens[screenName]) screens[screenName].classList.add('active');
     
+    // Update music based on screen
+    updateMusic(screenName);
+    
     // Update tab title based on screen
     const titles = {
         'menu': 'Main Menu - Pixel Fighter',
@@ -862,5 +887,17 @@ function gameLoop(timestamp) {
 async function init() {
     await loadCharacterData();
     showScreen('menu');
+    
+    // Start music on first interaction if blocked
+    window.addEventListener('click', () => {
+        if (gameState === 'MENU' || gameState === 'LOBBY' || gameState === 'SELECT') {
+            if (menuMusic.paused) {
+                menuMusic.play().catch(e => {});
+            }
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }, { once: true });
 }
 init();
