@@ -9,7 +9,7 @@ const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
 
 // Menu Music
-const menuMusic = new Audio('https://ia800604.us.archive.org/24/items/retro-game-music-pack/Retro%20Game%20Music%20Pack/Menu%20Theme.mp3');
+const menuMusic = new Audio('characters/menu_2.mp3');
 menuMusic.loop = true;
 menuMusic.volume = 0.4;
 
@@ -609,11 +609,80 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
+// Mobile Detection & Controls
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const mobileControls = document.getElementById('mobile-controls');
+
+function setupMobileControls() {
+    if (!isMobile) return;
+
+    mobileControls.style.display = 'flex';
+    document.getElementById('btn-fullscreen').style.display = 'block';
+
+    const touchMap = {
+        'ctrl-up': 'arrowup',
+        'ctrl-down': 'arrowdown',
+        'ctrl-left': 'arrowleft',
+        'ctrl-right': 'arrowright',
+        'ctrl-attack': ' ',
+        'ctrl-ult': 'e'
+    };
+
+    Object.keys(touchMap).forEach(id => {
+        const btn = document.getElementById(id);
+        const key = touchMap[id];
+
+        const handleStart = (e) => {
+            e.preventDefault();
+            keys[key] = true;
+        };
+        const handleEnd = (e) => {
+            e.preventDefault();
+            keys[key] = false;
+        };
+
+        btn.addEventListener('touchstart', handleStart);
+        btn.addEventListener('touchend', handleEnd);
+        btn.addEventListener('mousedown', handleStart);
+        btn.addEventListener('mouseup', handleEnd);
+        btn.addEventListener('mouseleave', handleEnd);
+    });
+
+    document.getElementById('btn-fullscreen').addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(e => console.log(e));
+            lockOrientation();
+        } else {
+            document.exitFullscreen();
+        }
+    });
+}
+
+async function lockOrientation() {
+    if (!isMobile) return;
+    try {
+        if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock('landscape');
+        }
+    } catch (e) {
+        console.log("Orientation lock failed:", e);
+    }
+}
+
 // --- UI Functions ---
 function showScreen(screenName) {
     Object.values(screens).forEach(s => s.classList.remove('active'));
     if(screens[screenName]) screens[screenName].classList.add('active');
     
+    // Show/Hide mobile controls based on screen
+    if (isMobile) {
+        if (screenName === 'hud') {
+            mobileControls.style.display = 'flex';
+        } else {
+            mobileControls.style.display = 'none';
+        }
+    }
+
     // Update music based on screen
     updateMusic(screenName);
     
@@ -886,9 +955,10 @@ function gameLoop(timestamp) {
 // Initialize
 async function init() {
     await loadCharacterData();
+    setupMobileControls();
     showScreen('menu');
     
-    // Start music on first interaction if blocked
+    // Start music and lock orientation on first interaction
     window.addEventListener('click', () => {
         if (gameState === 'MENU' || gameState === 'LOBBY' || gameState === 'SELECT') {
             if (menuMusic.paused) {
@@ -898,6 +968,7 @@ async function init() {
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
+        lockOrientation();
     }, { once: true });
 }
 init();

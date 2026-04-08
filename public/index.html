@@ -9,6 +9,12 @@
 </head>
 <body>
     <div id="ui-container">
+        <!-- Orientation Overlay -->
+        <div id="orientation-overlay" class="screen">
+            <h2>Please Rotate Your Device</h2>
+            <p>This game is best played in Landscape mode.</p>
+        </div>
+
         <!-- Main Menu -->
         <div id="main-menu" class="screen active">
             <h1>Pixel Fighter</h1>
@@ -30,6 +36,7 @@
                 <input type="text" id="input-room-code" placeholder="4-Digit Code" maxlength="4">
                 <button id="btn-join">Join Game</button>
             </div>
+            <button id="btn-fullscreen" style="display: none; margin-top: 20px; background: #555; font-size: 10px;">Fullscreen</button>
             <p id="menu-message"></p>
         </div>
 
@@ -59,6 +66,21 @@
         <div id="game-over-screen" class="screen">
             <h1 id="game-over-title">Game Over</h1>
             <button id="btn-game-over-ok">OK</button>
+        </div>
+    </div>
+
+    <div id="mobile-controls" style="display: none;">
+        <div class="dpad">
+            <button id="ctrl-up" class="ctrl-btn">▲</button>
+            <div class="dpad-mid">
+                <button id="ctrl-left" class="ctrl-btn">◀</button>
+                <button id="ctrl-right" class="ctrl-btn">▶</button>
+            </div>
+            <button id="ctrl-down" class="ctrl-btn">▼</button>
+        </div>
+        <div class="actions">
+            <button id="ctrl-ult" class="ctrl-btn ult">U</button>
+            <button id="ctrl-attack" class="ctrl-btn attack">A</button>
         </div>
     </div>
 

@@ -232,3 +232,111 @@ input {
     white-space: nowrap;
     text-shadow: 1px 1px 0 #000;
 }
+
+#orientation-overlay {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: #111;
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+}
+
+#orientation-overlay h2 {
+    color: var(--primary);
+    margin-bottom: 20px;
+}
+
+/* Mobile Controls */
+#mobile-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 40px;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.dpad, .actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: auto;
+}
+
+.dpad-mid {
+    display: flex;
+    gap: 10px;
+}
+
+.ctrl-btn {
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 3px solid rgba(255, 255, 255, 0.5);
+    color: #fff;
+    font-size: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%; /* Circle buttons for better feel */
+    user-select: none;
+    touch-action: manipulation;
+    margin: 5px;
+    padding: 0;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.ctrl-btn:active {
+    background: rgba(255, 255, 255, 0.4);
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.ctrl-btn.ult {
+    background: rgba(241, 196, 15, 0.2);
+    border-color: rgba(241, 196, 15, 0.6);
+    color: #f1c40f;
+}
+
+.ctrl-btn.attack {
+    background: rgba(231, 76, 60, 0.2);
+    border-color: rgba(231, 76, 60, 0.6);
+    color: #e74c3c;
+}
+
+/* Orientation Handling */
+@media (orientation: portrait) and (max-width: 1024px) {
+    #orientation-overlay {
+        display: flex !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 9999;
+    }
+    #ui-container > div:not(#orientation-overlay) {
+        display: none !important;
+    }
+    #gameCanvas, #mobile-controls {
+        display: none !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    #ui-container {
+        width: 100vw;
+        height: 100vh;
+    }
+    #gameCanvas {
+        width: 100vw;
+        height: auto;
+        max-height: 100vh;
+    }
+}
