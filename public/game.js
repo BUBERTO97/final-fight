@@ -57,26 +57,45 @@ const screens = {
 // --- Character Configurations ---
 // Logic is kept here, but stats and visuals are loaded from JSON
 const CHARACTERS = {
-    PixelKnight: {
+    ShadowAssassin: {
         ultimateSkill: function(player) {
-            // Dash slice
-            player.vx = player.facingRight ? 20 : -20;
+            // Teleport behind enemy
+            const otherId = player.id === 'player1' ? 'player2' : 'player1';
+            const other = players[otherId];
+            if (other) {
+                player.x = other.facingRight ? other.x - 40 : other.x + other.width + 10;
+                player.facingRight = other.x > player.x;
+            }
             player.action = 'ultimate';
             player.actionTimer = 20;
         }
     },
-    Mage: {
+    FrostMage: {
         ultimateSkill: function(player) {
-            // Circular explosion
+            // Blizzard storm (slows and damages)
             player.action = 'ultimate';
-            player.actionTimer = 30;
+            player.actionTimer = 40;
         }
     },
-    Tank: {
+    FlameBerserker: {
         ultimateSkill: function(player) {
-            // Temporary shield
+            // Inferno Rage (speed and damage boost)
             player.action = 'ultimate';
             player.actionTimer = 60;
+        }
+    },
+    TechGuardian: {
+        ultimateSkill: function(player) {
+            // Barrier Dome
+            player.action = 'ultimate';
+            player.actionTimer = 60;
+        }
+    },
+    StormArcher: {
+        ultimateSkill: function(player) {
+            // Thunder Rain
+            player.action = 'ultimate';
+            player.actionTimer = 30;
         }
     }
 };
@@ -97,7 +116,11 @@ async function loadCharacterData() {
             
             // Preload idle sprite
             const img = new Image();
-            img.src = `/sprites/${charKey}_idle.svg`;
+            if (data.visual?.sprites?.idle) {
+                img.src = `/${data.visual.sprites.idle.src}`;
+            } else {
+                img.src = `/sprites/${charKey}_idle.svg`;
+            }
             globalIdleSprites[charKey] = img;
         } catch (error) {
             console.error(`Failed to load data for ${charKey}:`, error);
@@ -124,7 +147,7 @@ function renderCharacterCards() {
         card.innerHTML = `
             <h3>${char.name}</h3>
             <p>${char.description || ''}</p>
-            <div class="ult-name" data-tooltip="${char.ultimateDescription || ''}">Ult: ${char.ultimateName || ''}</div>
+            <div class="ult-name" data-tooltip="${char.ultimate?.description || ''}">Ult: ${char.ultimate?.name || ''}</div>
         `;
         
         card.addEventListener('click', () => {
@@ -173,7 +196,11 @@ class Sprite {
             }
 
             const img = new Image();
-            img.src = `/sprites/${characterName}_${state}.svg`;
+            if (this.config.visual?.sprites?.[state]) {
+                img.src = `/${this.config.visual.sprites[state].src}`;
+            } else {
+                img.src = `/sprites/${characterName}_${state}.svg`;
+            }
             img.onload = () => {
                 loadedCount++;
                 if (loadedCount === states.length) this.loaded = true;
@@ -203,7 +230,7 @@ class Sprite {
             ctx.drawImage(img, x, y, width, height);
         } else {
             // Fallback: use color from JSON
-            const color = this.config.color || fallbackColor;
+            const color = this.config.visual?.themeColor || fallbackColor;
             ctx.fillStyle = color;
             ctx.fillRect(x, y, width, height);
             
@@ -227,17 +254,18 @@ class Player {
         this.vx = 0;
         this.vy = 0;
         this.config = charConfig;
-        this.hp = charConfig.hp;
-        this.maxHp = charConfig.hp;
-        this.width = charConfig.width;
-        this.height = charConfig.height;
+        this.hp = charConfig.stats?.hp || 100;
+        this.maxHp = charConfig.stats?.hp || 100;
+        this.width = charConfig.dimensions?.width || 50;
+        this.height = charConfig.dimensions?.height || 70;
         this.facingRight = true;
         this.action = 'idle'; // idle, run, attack, ultimate
         this.actionTimer = 0;
         this.hitTimer = 0;
-        this.sprite = new Sprite(charConfig.name);
+        this.sprite = new Sprite(charConfig.id);
         this.attackCooldown = 0;
         this.ultimateCooldown = 0;
+        this.maxUltimateCooldown = (charConfig.ultimate?.cooldown || 5) * 60;
     }
 
     update(keys) {
@@ -256,11 +284,11 @@ class Player {
         if ((this.action === 'idle' || this.action === 'run') && this.hitTimer === 0) {
             // Horizontal Movement
             if (keys['a'] || keys['ArrowLeft']) {
-                this.vx = -this.config.speed;
+                this.vx = -(this.config.stats?.speed || 5);
                 this.facingRight = false;
                 this.action = 'run';
             } else if (keys['d'] || keys['ArrowRight']) {
-                this.vx = this.config.speed;
+                this.vx = (this.config.stats?.speed || 5);
                 this.facingRight = true;
                 this.action = 'run';
             } else {
@@ -270,7 +298,7 @@ class Player {
 
             // Jump
             if ((keys['w'] || keys['ArrowUp']) && this.y >= FLOOR_Y - this.height) {
-                this.vy = -this.config.jumpForce;
+                this.vy = -(this.config.stats?.jumpForce || 12);
             }
 
             // Attack
@@ -284,7 +312,7 @@ class Player {
             // Ultimate
             if (keys['e'] && this.ultimateCooldown === 0) {
                 this.config.ultimateSkill(this);
-                this.ultimateCooldown = 300; // 5 seconds at 60fps
+                this.ultimateCooldown = this.maxUltimateCooldown;
             }
         }
 
@@ -333,7 +361,7 @@ class Player {
                 ws.send(JSON.stringify({
                     type: 'ATTACK_HIT',
                     targetId: otherId,
-                    damage: this.config.attackDamage
+                    damage: this.config.stats?.attackDamage || 10
                 }));
             }
         }
@@ -380,16 +408,22 @@ class Player {
         
         // Draw Ultimate Visuals
         if (this.action === 'ultimate') {
-            if (this.config.name === 'Mage') {
+            if (this.config.id === 'FrostMage') {
                 ctx.beginPath();
                 ctx.arc(this.x + this.width/2, this.y + this.height/2, 80 - this.actionTimer*2, 0, Math.PI*2);
-                ctx.fillStyle = 'rgba(155, 89, 182, 0.5)';
+                ctx.fillStyle = 'rgba(93, 173, 226, 0.5)';
                 ctx.fill();
-            } else if (this.config.name === 'Tank') {
+            } else if (this.config.id === 'TechGuardian') {
                 ctx.beginPath();
                 ctx.arc(this.x + this.width/2, this.y + this.height/2, 60, 0, Math.PI*2);
-                ctx.strokeStyle = 'rgba(46, 204, 113, 0.8)';
+                ctx.strokeStyle = 'rgba(26, 188, 156, 0.8)';
                 ctx.lineWidth = 5;
+                ctx.stroke();
+            } else if (this.config.id === 'FlameBerserker') {
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2, this.y + this.height/2, 50, 0, Math.PI*2);
+                ctx.strokeStyle = 'rgba(230, 126, 34, 0.8)';
+                ctx.lineWidth = 3;
                 ctx.stroke();
             }
         }
@@ -418,11 +452,19 @@ function updateHUD() {
         const p1 = players['player1'];
         const pct = Math.max(0, (p1.hp / p1.maxHp) * 100);
         document.getElementById('p1-hp-bar').style.width = `${pct}%`;
+        
+        const ultPct = p1.ultimateCooldown > 0 ? (p1.ultimateCooldown / p1.maxUltimateCooldown) * 100 : 0;
+        document.getElementById('p1-ult-bar').style.width = `${ultPct}%`;
+        document.getElementById('p1-ult-text').innerText = p1.ultimateCooldown > 0 ? `${Math.ceil(p1.ultimateCooldown / 60)}s` : 'ULT READY';
     }
     if (players['player2']) {
         const p2 = players['player2'];
         const pct = Math.max(0, (p2.hp / p2.maxHp) * 100);
         document.getElementById('p2-hp-bar').style.width = `${pct}%`;
+        
+        const ultPct = p2.ultimateCooldown > 0 ? (p2.ultimateCooldown / p2.maxUltimateCooldown) * 100 : 0;
+        document.getElementById('p2-ult-bar').style.width = `${ultPct}%`;
+        document.getElementById('p2-ult-text').innerText = p2.ultimateCooldown > 0 ? `${Math.ceil(p2.ultimateCooldown / 60)}s` : 'ULT READY';
     }
 }
 
@@ -467,6 +509,7 @@ function connectWebSocket() {
                     p.y = data.y;
                     p.facingRight = data.facingRight;
                     p.action = data.action;
+                    p.ultimateCooldown = data.ultimateCooldown || 0;
                 }
                 break;
             case 'HP_UPDATE':
@@ -576,7 +619,8 @@ function gameLoop(timestamp) {
                 x: myP.x,
                 y: myP.y,
                 facingRight: myP.facingRight,
-                action: myP.action
+                action: myP.action,
+                ultimateCooldown: myP.ultimateCooldown
             }));
             lastSync = timestamp;
         }
@@ -586,6 +630,7 @@ function gameLoop(timestamp) {
     if (players['player1']) players['player1'].draw(ctx);
     if (players['player2']) players['player2'].draw(ctx);
 
+    updateHUD();
     requestAnimationFrame(gameLoop);
 }
 

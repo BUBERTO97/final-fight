@@ -1,0 +1,45 @@
+{
+  "id": "FlameBerserker",
+  "name": "Flame Berserker",
+  "role": "Fighter",
+  "rarity": "Epic",
+  "description": "High-risk melee fighter fueled by fire.",
+  "ultimate": {
+    "name": "Inferno Rage",
+    "description": "Engulf in flames, increasing damage and speed temporarily.",
+    "cooldown": 9,
+    "vfx": "fire_aura"
+  },
+  "stats": {
+    "hp": 110,
+    "attackDamage": 20,
+    "speed": 6,
+    "jumpForce": 11
+  },
+  "dimensions": {
+    "width": 55,
+    "height": 75,
+    "hitbox": { "x": 6, "y": 5, "width": 43, "height": 65 }
+  },
+  "visual": {
+    "themeColor": "#e67e22",
+    "portrait": "ui/portraits/flame_berserker.png",
+    "icon": "ui/icons/flame_berserker_icon.png",
+    "sprites": {
+      "idle": { "src": "sprites/flame_idle.png", "frames": 4, "fps": 6, "loop": true },
+      "run": { "src": "sprites/flame_run.png", "frames": 6, "fps": 10, "loop": true },
+      "attack": { "src": "sprites/flame_attack.png", "frames": 6, "fps": 13, "loop": false },
+      "ultimate": { "src": "sprites/flame_ultimate.png", "frames": 8, "fps": 15, "loop": false }
+    },
+    "effects": {
+      "attackTrail": "fx/fire_trail.png",
+      "hitEffect": "fx/fire_hit.png",
+      "ultimateEffect": "fx/inferno.png"
+    }
+  },
+  "ui": {
+    "healthBarOffset": { "x": 0, "y": -14 },
+    "nameplate": true,
+    "shadow": true
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "id": "StormArcher",
+  "name": "Storm Archer",
+  "role": "Ranged",
+  "rarity": "Rare",
+  "description": "Agile archer harnessing lightning.",
+  "ultimate": {
+    "name": "Thunder Rain",
+    "description": "Call down a barrage of lightning arrows.",
+    "cooldown": 11,
+    "vfx": "lightning_strike"
+  },
+  "stats": {
+    "hp": 85,
+    "attackDamage": 14,
+    "speed": 7,
+    "jumpForce": 12
+  },
+  "dimensions": {
+    "width": 48,
+    "height": 68,
+    "hitbox": { "x": 5, "y": 5, "width": 38, "height": 58 }
+  },
+  "visual": {
+    "themeColor": "#f1c40f",
+    "portrait": "ui/portraits/storm_archer.png",
+    "icon": "ui/icons/storm_archer_icon.png",
+    "sprites": {
+      "idle": { "src": "sprites/storm_idle.png", "frames": 4, "fps": 6, "loop": true },
+      "run": { "src": "sprites/storm_run.png", "frames": 6, "fps": 11, "loop": true },
+      "attack": { "src": "sprites/storm_attack.png", "frames": 5, "fps": 13, "loop": false },
+      "ultimate": { "src": "sprites/storm_ultimate.png", "frames": 7, "fps": 15, "loop": false }
+    },
+    "effects": {
+      "attackTrail": "fx/lightning_arrow.png",
+      "hitEffect": "fx/electric_hit.png",
+      "ultimateEffect": "fx/thunderstorm.png"
+    }
+  },
+  "ui": {
+    "healthBarOffset": { "x": 0, "y": -10 },
+    "nameplate": true,
+    "shadow": true
+  }
+}

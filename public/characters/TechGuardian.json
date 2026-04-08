@@ -1,0 +1,45 @@
+{
+  "id": "TechGuardian",
+  "name": "Tech Guardian",
+  "role": "Tank",
+  "rarity": "Legendary",
+  "description": "A robotic defender with powerful shields.",
+  "ultimate": {
+    "name": "Barrier Dome",
+    "description": "Deploy a protective dome reducing damage for allies.",
+    "cooldown": 14,
+    "vfx": "energy_shield"
+  },
+  "stats": {
+    "hp": 160,
+    "attackDamage": 9,
+    "speed": 3,
+    "jumpForce": 8
+  },
+  "dimensions": {
+    "width": 70,
+    "height": 85,
+    "hitbox": { "x": 8, "y": 6, "width": 54, "height": 70 }
+  },
+  "visual": {
+    "themeColor": "#1abc9c",
+    "portrait": "ui/portraits/tech_guardian.png",
+    "icon": "ui/icons/tech_guardian_icon.png",
+    "sprites": {
+      "idle": { "src": "sprites/tech_idle.png", "frames": 3, "fps": 4, "loop": true },
+      "run": { "src": "sprites/tech_run.png", "frames": 5, "fps": 7, "loop": true },
+      "attack": { "src": "sprites/tech_attack.png", "frames": 4, "fps": 8, "loop": false },
+      "ultimate": { "src": "sprites/tech_ultimate.png", "frames": 6, "fps": 10, "loop": false }
+    },
+    "effects": {
+      "attackTrail": "fx/energy_swing.png",
+      "hitEffect": "fx/metal_hit.png",
+      "ultimateEffect": "fx/shield_dome.png"
+    }
+  },
+  "ui": {
+    "healthBarOffset": { "x": 0, "y": -15 },
+    "nameplate": true,
+    "shadow": true
+  }
+}

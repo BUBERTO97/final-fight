@@ -1,0 +1,45 @@
+{
+  "id": "ShadowAssassin",
+  "name": "Shadow Assassin",
+  "role": "Assassin",
+  "rarity": "Rare",
+  "description": "Fast and deadly, excels at burst damage.",
+  "ultimate": {
+    "name": "Shadow Blink",
+    "description": "Teleport behind enemies and deliver a critical strike.",
+    "cooldown": 10,
+    "vfx": "shadow_slash"
+  },
+  "stats": {
+    "hp": 70,
+    "attackDamage": 18,
+    "speed": 9,
+    "jumpForce": 13
+  },
+  "dimensions": {
+    "width": 45,
+    "height": 65,
+    "hitbox": { "x": 5, "y": 5, "width": 35, "height": 55 }
+  },
+  "visual": {
+    "themeColor": "#2c3e50",
+    "portrait": "ui/portraits/shadow_assassin.png",
+    "icon": "ui/icons/shadow_assassin_icon.png",
+    "sprites": {
+      "idle": { "src": "sprites/shadow_idle.png", "frames": 4, "fps": 6, "loop": true },
+      "run": { "src": "sprites/shadow_run.png", "frames": 6, "fps": 12, "loop": true },
+      "attack": { "src": "sprites/shadow_attack.png", "frames": 5, "fps": 14, "loop": false },
+      "ultimate": { "src": "sprites/shadow_ultimate.png", "frames": 7, "fps": 16, "loop": false }
+    },
+    "effects": {
+      "attackTrail": "fx/shadow_trail.png",
+      "hitEffect": "fx/dark_hit.png",
+      "ultimateEffect": "fx/shadow_burst.png"
+    }
+  },
+  "ui": {
+    "healthBarOffset": { "x": 0, "y": -10 },
+    "nameplate": true,
+    "shadow": true
+  }
+}

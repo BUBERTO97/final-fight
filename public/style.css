@@ -215,3 +215,35 @@ input {
 .p2-hud .hp-bar {
     margin-left: auto;
 }
+
+.ult-cooldown-container {
+    width: 100%;
+    height: 12px;
+    background: #222;
+    border: 2px solid #fff;
+    margin-top: 5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.ult-bar {
+    height: 100%;
+    background: #f1c40f;
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+.p2-hud .ult-bar {
+    margin-left: auto;
+}
+
+.ult-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 6px;
+    color: #fff;
+    white-space: nowrap;
+    text-shadow: 1px 1px 0 #000;
+}

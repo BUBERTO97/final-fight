@@ -3,7 +3,6 @@
   "name": "Frost Mage",
   "role": "Mage",
   "rarity": "Epic",
-
   "description": "Controls the battlefield with freezing magic.",
   "ultimate": {
     "name": "Blizzard Core",
@@ -11,39 +10,33 @@
     "cooldown": 12,
     "vfx": "ice_storm"
   },
-
   "stats": {
     "hp": 75,
     "attackDamage": 16,
     "speed": 4,
     "jumpForce": 10
   },
-
   "dimensions": {
     "width": 42,
     "height": 70,
     "hitbox": { "x": 4, "y": 6, "width": 34, "height": 58 }
   },
-
   "visual": {
     "themeColor": "#5dade2",
     "portrait": "ui/portraits/frost_mage.png",
     "icon": "ui/icons/frost_mage_icon.png",
-
     "sprites": {
       "idle": { "src": "sprites/frost_idle.png", "frames": 4, "fps": 5, "loop": true },
       "run": { "src": "sprites/frost_run.png", "frames": 6, "fps": 9, "loop": true },
       "attack": { "src": "sprites/frost_attack.png", "frames": 5, "fps": 11, "loop": false },
       "ultimate": { "src": "sprites/frost_ultimate.png", "frames": 8, "fps": 12, "loop": false }
     },
-
     "effects": {
       "attackTrail": "fx/ice_shard.png",
       "hitEffect": "fx/frost_hit.png",
       "ultimateEffect": "fx/blizzard.png"
     }
   },
-
   "ui": {
     "healthBarOffset": { "x": 0, "y": -12 },
     "nameplate": true,
