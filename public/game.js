@@ -287,11 +287,14 @@ class Player {
             ctx.fillRect(this.x, this.y, this.width, this.height);
         }
 
-        // Draw Player Name above head
+        // Draw Player Name and Character above head
         ctx.fillStyle = 'white';
         ctx.font = '10px "Press Start 2P"';
         ctx.textAlign = 'center';
-        ctx.fillText(this.id, this.x + this.width / 2, this.y - 10);
+        ctx.fillText(this.id, this.x + this.width / 2, this.y - 22);
+        ctx.fillStyle = '#f1c40f'; // Gold color for character name
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillText(this.config.name, this.x + this.width / 2, this.y - 10);
 
         // Draw Attack Visuals
         if (this.action === 'attack') {
