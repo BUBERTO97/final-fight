@@ -23,18 +23,18 @@
   },
   "visual": {
     "themeColor": "#1abc9c",
-    "portrait": "ui/portraits/tech_guardian.png",
-    "icon": "ui/icons/tech_guardian_icon.png",
+    "portrait": "ui/portraits/tech_guardian.svg",
+    "icon": "ui/icons/tech_guardian_icon.svg",
     "sprites": {
-      "idle": { "src": "sprites/tech_idle.png", "frames": 3, "fps": 4, "loop": true },
-      "run": { "src": "sprites/tech_run.png", "frames": 5, "fps": 7, "loop": true },
-      "attack": { "src": "sprites/tech_attack.png", "frames": 4, "fps": 8, "loop": false },
-      "ultimate": { "src": "sprites/tech_ultimate.png", "frames": 6, "fps": 10, "loop": false }
+      "idle": { "src": "sprites/tech_idle.svg", "frames": 3, "fps": 4, "loop": true },
+      "run": { "src": "sprites/tech_run.svg", "frames": 5, "fps": 7, "loop": true },
+      "attack": { "src": "sprites/tech_attack.svg", "frames": 4, "fps": 8, "loop": false },
+      "ultimate": { "src": "sprites/tech_ultimate.svg", "frames": 6, "fps": 10, "loop": false }
     },
     "effects": {
-      "attackTrail": "fx/energy_swing.png",
-      "hitEffect": "fx/metal_hit.png",
-      "ultimateEffect": "fx/shield_dome.png"
+      "attackTrail": "fx/energy_swing.svg",
+      "hitEffect": "fx/metal_hit.svg",
+      "ultimateEffect": "fx/shield_dome.svg"
     }
   },
   "ui": {

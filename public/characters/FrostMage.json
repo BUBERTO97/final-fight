@@ -23,18 +23,18 @@
   },
   "visual": {
     "themeColor": "#5dade2",
-    "portrait": "ui/portraits/frost_mage.png",
-    "icon": "ui/icons/frost_mage_icon.png",
+    "portrait": "ui/portraits/frost_mage.svg",
+    "icon": "ui/icons/frost_mage_icon.svg",
     "sprites": {
-      "idle": { "src": "sprites/frost_idle.png", "frames": 4, "fps": 5, "loop": true },
-      "run": { "src": "sprites/frost_run.png", "frames": 6, "fps": 9, "loop": true },
-      "attack": { "src": "sprites/frost_attack.png", "frames": 5, "fps": 11, "loop": false },
-      "ultimate": { "src": "sprites/frost_ultimate.png", "frames": 8, "fps": 12, "loop": false }
+      "idle": { "src": "sprites/frost_idle.svg", "frames": 4, "fps": 5, "loop": true },
+      "run": { "src": "sprites/frost_run.svg", "frames": 6, "fps": 9, "loop": true },
+      "attack": { "src": "sprites/frost_attack.svg", "frames": 5, "fps": 11, "loop": false },
+      "ultimate": { "src": "sprites/frost_ultimate.svg", "frames": 8, "fps": 12, "loop": false }
     },
     "effects": {
-      "attackTrail": "fx/ice_shard.png",
-      "hitEffect": "fx/frost_hit.png",
-      "ultimateEffect": "fx/blizzard.png"
+      "attackTrail": "fx/ice_shard.svg",
+      "hitEffect": "fx/frost_hit.svg",
+      "ultimateEffect": "fx/blizzard.svg"
     }
   },
   "ui": {

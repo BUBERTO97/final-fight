@@ -23,18 +23,18 @@
   },
   "visual": {
     "themeColor": "#f1c40f",
-    "portrait": "ui/portraits/storm_archer.png",
-    "icon": "ui/icons/storm_archer_icon.png",
+    "portrait": "ui/portraits/storm_archer.svg",
+    "icon": "ui/icons/storm_archer_icon.svg",
     "sprites": {
-      "idle": { "src": "sprites/storm_idle.png", "frames": 4, "fps": 6, "loop": true },
-      "run": { "src": "sprites/storm_run.png", "frames": 6, "fps": 11, "loop": true },
-      "attack": { "src": "sprites/storm_attack.png", "frames": 5, "fps": 13, "loop": false },
-      "ultimate": { "src": "sprites/storm_ultimate.png", "frames": 7, "fps": 15, "loop": false }
+      "idle": { "src": "sprites/storm_idle.svg", "frames": 4, "fps": 6, "loop": true },
+      "run": { "src": "sprites/storm_run.svg", "frames": 6, "fps": 11, "loop": true },
+      "attack": { "src": "sprites/storm_attack.svg", "frames": 5, "fps": 13, "loop": false },
+      "ultimate": { "src": "sprites/storm_ultimate.svg", "frames": 7, "fps": 15, "loop": false }
     },
     "effects": {
-      "attackTrail": "fx/lightning_arrow.png",
-      "hitEffect": "fx/electric_hit.png",
-      "ultimateEffect": "fx/thunderstorm.png"
+      "attackTrail": "fx/lightning_arrow.svg",
+      "hitEffect": "fx/electric_hit.svg",
+      "ultimateEffect": "fx/thunderstorm.svg"
     }
   },
   "ui": {

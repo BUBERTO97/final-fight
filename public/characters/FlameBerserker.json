@@ -23,18 +23,18 @@
   },
   "visual": {
     "themeColor": "#e67e22",
-    "portrait": "ui/portraits/flame_berserker.png",
-    "icon": "ui/icons/flame_berserker_icon.png",
+    "portrait": "ui/portraits/flame_berserker.svg",
+    "icon": "ui/icons/flame_berserker_icon.svg",
     "sprites": {
-      "idle": { "src": "sprites/flame_idle.png", "frames": 4, "fps": 6, "loop": true },
-      "run": { "src": "sprites/flame_run.png", "frames": 6, "fps": 10, "loop": true },
-      "attack": { "src": "sprites/flame_attack.png", "frames": 6, "fps": 13, "loop": false },
-      "ultimate": { "src": "sprites/flame_ultimate.png", "frames": 8, "fps": 15, "loop": false }
+      "idle": { "src": "sprites/flame_idle.svg", "frames": 4, "fps": 6, "loop": true },
+      "run": { "src": "sprites/flame_run.svg", "frames": 6, "fps": 10, "loop": true },
+      "attack": { "src": "sprites/flame_attack.svg", "frames": 6, "fps": 13, "loop": false },
+      "ultimate": { "src": "sprites/flame_ultimate.svg", "frames": 8, "fps": 15, "loop": false }
     },
     "effects": {
-      "attackTrail": "fx/fire_trail.png",
-      "hitEffect": "fx/fire_hit.png",
-      "ultimateEffect": "fx/inferno.png"
+      "attackTrail": "fx/fire_trail.svg",
+      "hitEffect": "fx/fire_hit.svg",
+      "ultimateEffect": "fx/inferno.svg"
     }
   },
   "ui": {

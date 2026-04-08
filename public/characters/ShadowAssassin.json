@@ -23,18 +23,18 @@
   },
   "visual": {
     "themeColor": "#2c3e50",
-    "portrait": "ui/portraits/shadow_assassin.png",
-    "icon": "ui/icons/shadow_assassin_icon.png",
+    "portrait": "ui/portraits/shadow_assassin.svg",
+    "icon": "ui/icons/shadow_assassin_icon.svg",
     "sprites": {
-      "idle": { "src": "sprites/shadow_idle.png", "frames": 4, "fps": 6, "loop": true },
-      "run": { "src": "sprites/shadow_run.png", "frames": 6, "fps": 12, "loop": true },
-      "attack": { "src": "sprites/shadow_attack.png", "frames": 5, "fps": 14, "loop": false },
-      "ultimate": { "src": "sprites/shadow_ultimate.png", "frames": 7, "fps": 16, "loop": false }
+      "idle": { "src": "sprites/shadow_idle.svg", "frames": 4, "fps": 6, "loop": true },
+      "run": { "src": "sprites/shadow_run.svg", "frames": 6, "fps": 12, "loop": true },
+      "attack": { "src": "sprites/shadow_attack.svg", "frames": 5, "fps": 14, "loop": false },
+      "ultimate": { "src": "sprites/shadow_ultimate.svg", "frames": 7, "fps": 16, "loop": false }
     },
     "effects": {
-      "attackTrail": "fx/shadow_trail.png",
-      "hitEffect": "fx/dark_hit.png",
-      "ultimateEffect": "fx/shadow_burst.png"
+      "attackTrail": "fx/shadow_trail.svg",
+      "hitEffect": "fx/dark_hit.svg",
+      "ultimateEffect": "fx/shadow_burst.svg"
     }
   },
   "ui": {
