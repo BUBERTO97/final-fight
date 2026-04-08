@@ -353,7 +353,7 @@ class Player {
         this.maxUltimateCooldown = (charConfig.ultimate?.cooldown || 5) * 60;
     }
 
-    update(keys) {
+    updateTimers() {
         if (this.hitTimer > 0) this.hitTimer--;
         if (this.attackCooldown > 0) this.attackCooldown--;
         if (this.ultimateCooldown > 0) this.ultimateCooldown--;
@@ -364,6 +364,10 @@ class Player {
                 this.action = 'idle';
             }
         }
+    }
+
+    update(keys) {
+        this.updateTimers();
 
         // Only allow movement if not in a heavy action and not hit
         if ((this.action === 'idle' || this.action === 'run') && this.hitTimer === 0) {
@@ -468,8 +472,37 @@ class Player {
 
         // Hit Flash Overlay
         if (this.hitTimer > 0) {
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
-            ctx.fillRect(this.x, this.y, this.width, this.height);
+            ctx.save();
+            const cx = this.x + this.width / 2;
+            const cy = this.y + this.height / 2;
+            const progress = this.hitTimer / 15; // 1.0 to 0.0
+            const radius = 30 + (1 - progress) * 20; // Expands from 30 to 50
+            
+            // Impact glow
+            ctx.globalCompositeOperation = 'lighter';
+            const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+            gradient.addColorStop(0, `rgba(255, 255, 255, ${progress})`);
+            gradient.addColorStop(0.3, `rgba(255, 50, 50, ${progress * 0.8})`);
+            gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Impact spikes
+            ctx.translate(cx, cy);
+            ctx.rotate(progress * Math.PI); // Spin slightly
+            ctx.beginPath();
+            for(let i=0; i<8; i++) {
+                ctx.lineTo(0, i % 2 === 0 ? radius * 1.2 : radius * 0.4);
+                ctx.rotate(Math.PI / 4);
+            }
+            ctx.closePath();
+            ctx.fillStyle = `rgba(255, 255, 255, ${progress * 0.9})`;
+            ctx.fill();
+            
+            ctx.restore();
         }
 
         // Draw Player Name and Character above head
@@ -719,6 +752,12 @@ function gameLoop(timestamp) {
             }));
             lastSync = timestamp;
         }
+    }
+    
+    // Update Remote Player Timers
+    const otherPlayerId = myPlayerId === 'player1' ? 'player2' : 'player1';
+    if (players[otherPlayerId]) {
+        players[otherPlayerId].updateTimers();
     }
 
     // Draw Players
