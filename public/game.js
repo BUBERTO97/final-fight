@@ -11,7 +11,7 @@ const audioCtx = new AudioContext();
 // Menu Music
 const menuMusic = new Audio('characters/menu_2.mp3');
 menuMusic.loop = true;
-menuMusic.volume = 0.4;
+menuMusic.volume = 1;
 
 function playHitSound() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
