@@ -4,6 +4,29 @@ const CANVAS_HEIGHT = 600;
 const FLOOR_Y = 500;
 const GRAVITY = 0.6;
 
+// --- Audio Setup ---
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioContext();
+
+function playHitSound() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+    
+    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.1);
+}
+
 // --- WebSocket Setup ---
 // In AI Studio, we connect to the same host
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -161,10 +184,13 @@ class Player {
         this.facingRight = true;
         this.action = 'idle'; // idle, run, attack, ultimate
         this.actionTimer = 0;
+        this.hitTimer = 0;
         this.sprite = new Sprite(charConfig.name);
     }
 
     update(keys) {
+        if (this.hitTimer > 0) this.hitTimer--;
+
         if (this.actionTimer > 0) {
             this.actionTimer--;
             if (this.actionTimer <= 0) {
@@ -255,18 +281,36 @@ class Player {
         // Draw Sprite
         this.sprite.draw(ctx, this.x, this.y, this.width, this.height, this.action, this.facingRight, this.config.color);
 
+        // Hit Flash Overlay
+        if (this.hitTimer > 0) {
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        }
+
         // Draw Player Name above head
         ctx.fillStyle = 'white';
         ctx.font = '10px "Press Start 2P"';
         ctx.textAlign = 'center';
         ctx.fillText(this.id, this.x + this.width / 2, this.y - 10);
 
-        // Draw Attack Hitbox (Debug/Visual)
+        // Draw Attack Visuals
         if (this.action === 'attack') {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            const attackRange = 40;
-            const hx = this.facingRight ? this.x + this.width : this.x - attackRange;
-            ctx.fillRect(hx, this.y + 10, attackRange, 50);
+            const progress = 1 - (this.actionTimer / 15);
+            ctx.save();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            
+            const cx = this.facingRight ? this.x + this.width : this.x;
+            const cy = this.y + this.height / 2;
+            
+            const startAngle = this.facingRight ? -Math.PI / 2 : Math.PI / 2;
+            const endAngle = this.facingRight ? -Math.PI / 2 + (Math.PI * progress) : Math.PI / 2 - (Math.PI * progress);
+            
+            ctx.arc(cx, cy, 35, startAngle, endAngle, !this.facingRight);
+            ctx.stroke();
+            ctx.restore();
         }
         
         // Draw Ultimate Visuals
@@ -361,6 +405,14 @@ function connectWebSocket() {
                 }
                 break;
             case 'HP_UPDATE':
+                if (players['player1'] && data.player1 < players['player1'].hp) {
+                    players['player1'].hitTimer = 15;
+                    playHitSound();
+                }
+                if (players['player2'] && data.player2 < players['player2'].hp) {
+                    players['player2'].hitTimer = 15;
+                    playHitSound();
+                }
                 if (players['player1']) players['player1'].hp = data.player1;
                 if (players['player2']) players['player2'].hp = data.player2;
                 updateHUD();
