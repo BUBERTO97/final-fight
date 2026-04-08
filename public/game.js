@@ -145,6 +145,7 @@ function renderCharacterCards() {
         card.dataset.char = charKey;
         
         card.innerHTML = `
+            <img src="/${char.visual?.icon || ''}" alt="${char.name} icon" style="width: 64px; height: 64px; margin-bottom: 10px; border: 2px solid ${char.visual?.themeColor || '#fff'};">
             <h3>${char.name}</h3>
             <p>${char.description || ''}</p>
             <div class="ult-name" data-tooltip="${char.ultimate?.description || ''}">Ult: ${char.ultimate?.name || ''}</div>
@@ -178,6 +179,9 @@ class Sprite {
         this.images = {};
         this.loaded = false;
         this.config = CHARACTERS[characterName] || {};
+        this.frameIndex = 0;
+        this.lastFrameTime = 0;
+        this.currentState = 'idle';
         
         // Use preloaded idle sprite if available
         if (globalIdleSprites[characterName]) {
@@ -213,8 +217,15 @@ class Sprite {
         });
     }
 
-    draw(ctx, x, y, width, height, state, facingRight, fallbackColor) {
+    draw(ctx, x, y, width, height, state, facingRight, fallbackColor, timestamp = 0) {
+        if (this.currentState !== state) {
+            this.currentState = state;
+            this.frameIndex = 0;
+            this.lastFrameTime = timestamp;
+        }
+
         const img = this.images[state] || this.images['idle'];
+        const spriteConfig = this.config.visual?.sprites?.[state] || this.config.visual?.sprites?.['idle'];
         
         ctx.save();
         
@@ -227,7 +238,30 @@ class Sprite {
         }
 
         if (img && img.complete && img.naturalWidth > 0) {
-            ctx.drawImage(img, x, y, width, height);
+            if (spriteConfig && spriteConfig.frames > 1) {
+                const frames = spriteConfig.frames;
+                const fps = spriteConfig.fps || 10;
+                const frameDuration = 1000 / fps;
+                
+                if (timestamp - this.lastFrameTime > frameDuration) {
+                    this.frameIndex++;
+                    if (this.frameIndex >= frames) {
+                        this.frameIndex = spriteConfig.loop ? 0 : frames - 1;
+                    }
+                    this.lastFrameTime = timestamp;
+                }
+                
+                const frameWidth = img.naturalWidth / frames;
+                const frameHeight = img.naturalHeight;
+                
+                ctx.drawImage(
+                    img,
+                    this.frameIndex * frameWidth, 0, frameWidth, frameHeight,
+                    x, y, width, height
+                );
+            } else {
+                ctx.drawImage(img, x, y, width, height);
+            }
         } else {
             // Fallback: use color from JSON
             const color = this.config.visual?.themeColor || fallbackColor;
@@ -367,9 +401,9 @@ class Player {
         }
     }
 
-    draw(ctx) {
+    draw(ctx, timestamp) {
         // Draw Sprite
-        this.sprite.draw(ctx, this.x, this.y, this.width, this.height, this.action, this.facingRight, this.config.color);
+        this.sprite.draw(ctx, this.x, this.y, this.width, this.height, this.action, this.facingRight, this.config.visual?.themeColor, timestamp);
 
         // Hit Flash Overlay
         if (this.hitTimer > 0) {
@@ -627,8 +661,8 @@ function gameLoop(timestamp) {
     }
 
     // Draw Players
-    if (players['player1']) players['player1'].draw(ctx);
-    if (players['player2']) players['player2'].draw(ctx);
+    if (players['player1']) players['player1'].draw(ctx, timestamp);
+    if (players['player2']) players['player2'].draw(ctx, timestamp);
 
     updateHUD();
     requestAnimationFrame(gameLoop);
