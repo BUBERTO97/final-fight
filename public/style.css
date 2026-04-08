@@ -185,16 +185,9 @@ input {
 }
 
 .player-hud {
-    padding: 20px;
+    padding: 10px;
     width: 300px;
-}
-
-.p1-hud {
-    text-align: left;
-}
-
-.p2-hud {
-    text-align: right;
+    text-align: center;
 }
 
 .hp-bar-container {
@@ -212,10 +205,6 @@ input {
     transition: width 0.2s;
 }
 
-.p2-hud .hp-bar {
-    margin-left: auto;
-}
-
 .ult-cooldown-container {
     width: 100%;
     height: 12px;
@@ -231,10 +220,6 @@ input {
     background: #f1c40f;
     width: 0%;
     transition: width 0.1s linear;
-}
-
-.p2-hud .ult-bar {
-    margin-left: auto;
 }
 
 .ult-text {

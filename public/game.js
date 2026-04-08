@@ -59,17 +59,27 @@ const screens = {
 const CHARACTERS = {
     ShadowAssassin: {
         ultimateSkill: function(player) {
-            // Teleport behind enemy
-            const otherId = player.id === 'player1' ? 'player2' : 'player1';
-            const other = players[otherId];
-            if (other) {
-                player.x = other.facingRight ? other.x - 40 : other.x + other.width + 10;
-                player.facingRight = other.x > player.x;
+            // Teleport behind closest enemy
+            let closestOther = null;
+            let minDistance = Infinity;
+            Object.keys(players).forEach(pid => {
+                if (pid !== player.id && players[pid].hp > 0) {
+                    const dist = Math.abs(player.x - players[pid].x);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closestOther = players[pid];
+                    }
+                }
+            });
+            
+            if (closestOther) {
+                player.x = closestOther.facingRight ? closestOther.x - 40 : closestOther.x + closestOther.width + 10;
+                player.facingRight = closestOther.x > player.x;
                 
                 // Deal damage
                 ws.send(JSON.stringify({
                     type: 'ATTACK_HIT',
-                    targetId: otherId,
+                    targetId: closestOther.id,
                     damage: 35
                 }));
             }
@@ -79,17 +89,16 @@ const CHARACTERS = {
     },
     FrostMage: {
         ultimateSkill: function(player) {
-            // Blizzard storm (damages)
-            const otherId = player.id === 'player1' ? 'player2' : 'player1';
-            const other = players[otherId];
-            if (other) {
-                player.facingRight = other.x > player.x;
-                ws.send(JSON.stringify({
-                    type: 'ATTACK_HIT',
-                    targetId: otherId,
-                    damage: 30
-                }));
-            }
+            // Blizzard storm (damages all)
+            Object.keys(players).forEach(pid => {
+                if (pid !== player.id && players[pid].hp > 0) {
+                    ws.send(JSON.stringify({
+                        type: 'ATTACK_HIT',
+                        targetId: pid,
+                        damage: 30
+                    }));
+                }
+            });
             player.action = 'ultimate';
             player.actionTimer = 40;
         }
@@ -97,18 +106,17 @@ const CHARACTERS = {
     FlameBerserker: {
         ultimateSkill: function(player) {
             // Inferno Rage (AoE damage)
-            const otherId = player.id === 'player1' ? 'player2' : 'player1';
-            const other = players[otherId];
-            if (other) {
-                player.facingRight = other.x > player.x;
-                if (Math.abs(player.x - other.x) < 200) {
-                    ws.send(JSON.stringify({
-                        type: 'ATTACK_HIT',
-                        targetId: otherId,
-                        damage: 40
-                    }));
+            Object.keys(players).forEach(pid => {
+                if (pid !== player.id && players[pid].hp > 0) {
+                    if (Math.abs(player.x - players[pid].x) < 200) {
+                        ws.send(JSON.stringify({
+                            type: 'ATTACK_HIT',
+                            targetId: pid,
+                            damage: 40
+                        }));
+                    }
                 }
-            }
+            });
             player.action = 'ultimate';
             player.actionTimer = 60;
         }
@@ -116,18 +124,17 @@ const CHARACTERS = {
     TechGuardian: {
         ultimateSkill: function(player) {
             // Barrier Dome (Damages nearby)
-            const otherId = player.id === 'player1' ? 'player2' : 'player1';
-            const other = players[otherId];
-            if (other) {
-                player.facingRight = other.x > player.x;
-                if (Math.abs(player.x - other.x) < 150) {
-                    ws.send(JSON.stringify({
-                        type: 'ATTACK_HIT',
-                        targetId: otherId,
-                        damage: 25
-                    }));
+            Object.keys(players).forEach(pid => {
+                if (pid !== player.id && players[pid].hp > 0) {
+                    if (Math.abs(player.x - players[pid].x) < 150) {
+                        ws.send(JSON.stringify({
+                            type: 'ATTACK_HIT',
+                            targetId: pid,
+                            damage: 25
+                        }));
+                    }
                 }
-            }
+            });
             player.action = 'ultimate';
             player.actionTimer = 60;
         }
@@ -135,16 +142,15 @@ const CHARACTERS = {
     StormArcher: {
         ultimateSkill: function(player) {
             // Thunder Rain (Global hit)
-            const otherId = player.id === 'player1' ? 'player2' : 'player1';
-            const other = players[otherId];
-            if (other) {
-                player.facingRight = other.x > player.x;
-                ws.send(JSON.stringify({
-                    type: 'ATTACK_HIT',
-                    targetId: otherId,
-                    damage: 35
-                }));
-            }
+            Object.keys(players).forEach(pid => {
+                if (pid !== player.id && players[pid].hp > 0) {
+                    ws.send(JSON.stringify({
+                        type: 'ATTACK_HIT',
+                        targetId: pid,
+                        damage: 35
+                    }));
+                }
+            });
             player.action = 'ultimate';
             player.actionTimer = 30;
         }
@@ -397,11 +403,21 @@ class Player {
                 this.attackCooldown = 30; // ~0.5 seconds at 60fps
                 this.vx = 0; // Stop moving
                 
-                // Automatically face the opponent when attacking
-                const otherId = this.id === 'player1' ? 'player2' : 'player1';
-                const other = players[otherId];
-                if (other) {
-                    this.facingRight = other.x > this.x;
+                // Automatically face the closest opponent when attacking
+                let closestOpponent = null;
+                let minDistance = Infinity;
+                Object.keys(players).forEach(pid => {
+                    if (pid !== this.id && players[pid].hp > 0) {
+                        const dist = Math.abs(players[pid].x - this.x);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            closestOpponent = players[pid];
+                        }
+                    }
+                });
+                
+                if (closestOpponent) {
+                    this.facingRight = closestOpponent.x > this.x;
                 }
                 
                 this.checkAttackHit();
@@ -447,23 +463,25 @@ class Player {
             height: 50
         };
 
-        const otherId = this.id === 'player1' ? 'player2' : 'player1';
-        const other = players[otherId];
-
-        if (other) {
-            if (hitbox.x < other.x + other.width &&
-                hitbox.x + hitbox.width > other.x &&
-                hitbox.y < other.y + other.height &&
-                hitbox.y + hitbox.height > other.y) {
-                
-                // Hit! Send to server
-                ws.send(JSON.stringify({
-                    type: 'ATTACK_HIT',
-                    targetId: otherId,
-                    damage: this.config.stats?.attackDamage || 10
-                }));
+        Object.keys(players).forEach(otherId => {
+            if (otherId === this.id) return;
+            
+            const other = players[otherId];
+            if (other && other.hp > 0) {
+                if (hitbox.x < other.x + other.width &&
+                    hitbox.x + hitbox.width > other.x &&
+                    hitbox.y < other.y + other.height &&
+                    hitbox.y + hitbox.height > other.y) {
+                    
+                    // Hit! Send to server
+                    ws.send(JSON.stringify({
+                        type: 'ATTACK_HIT',
+                        targetId: otherId,
+                        damage: this.config.stats?.attackDamage || 10
+                    }));
+                }
             }
-        }
+        });
     }
 
     draw(ctx, timestamp) {
@@ -586,24 +604,37 @@ function showScreen(screenName) {
 }
 
 function updateHUD() {
-    if (players['player1']) {
-        const p1 = players['player1'];
-        const pct = Math.max(0, (p1.hp / p1.maxHp) * 100);
-        document.getElementById('p1-hp-bar').style.width = `${pct}%`;
+    const hudContainer = document.getElementById('hud-container');
+    
+    // Ensure HUD elements exist for all players
+    Object.keys(players).forEach(pid => {
+        let playerHud = document.getElementById(`hud-${pid}`);
+        if (!playerHud) {
+            playerHud = document.createElement('div');
+            playerHud.id = `hud-${pid}`;
+            playerHud.className = `player-hud ${pid}-hud`;
+            playerHud.style.width = Object.keys(players).length > 2 ? '200px' : '300px';
+            playerHud.innerHTML = `
+                <div class="name">${pid}</div>
+                <div class="hp-bar-container">
+                    <div id="${pid}-hp-bar" class="hp-bar"></div>
+                </div>
+                <div class="ult-cooldown-container">
+                    <div id="${pid}-ult-bar" class="ult-bar"></div>
+                    <span id="${pid}-ult-text" class="ult-text">ULT READY</span>
+                </div>
+            `;
+            hudContainer.appendChild(playerHud);
+        }
         
-        const ultPct = p1.ultimateCooldown > 0 ? (p1.ultimateCooldown / p1.maxUltimateCooldown) * 100 : 0;
-        document.getElementById('p1-ult-bar').style.width = `${ultPct}%`;
-        document.getElementById('p1-ult-text').innerText = p1.ultimateCooldown > 0 ? `${Math.ceil(p1.ultimateCooldown / 60)}s` : 'ULT READY';
-    }
-    if (players['player2']) {
-        const p2 = players['player2'];
-        const pct = Math.max(0, (p2.hp / p2.maxHp) * 100);
-        document.getElementById('p2-hp-bar').style.width = `${pct}%`;
+        const p = players[pid];
+        const pct = Math.max(0, (p.hp / p.maxHp) * 100);
+        document.getElementById(`${pid}-hp-bar`).style.width = `${pct}%`;
         
-        const ultPct = p2.ultimateCooldown > 0 ? (p2.ultimateCooldown / p2.maxUltimateCooldown) * 100 : 0;
-        document.getElementById('p2-ult-bar').style.width = `${ultPct}%`;
-        document.getElementById('p2-ult-text').innerText = p2.ultimateCooldown > 0 ? `${Math.ceil(p2.ultimateCooldown / 60)}s` : 'ULT READY';
-    }
+        const ultPct = p.ultimateCooldown > 0 ? (p.ultimateCooldown / p.maxUltimateCooldown) * 100 : 0;
+        document.getElementById(`${pid}-ult-bar`).style.width = `${ultPct}%`;
+        document.getElementById(`${pid}-ult-text`).innerText = p.ultimateCooldown > 0 ? `${Math.ceil(p.ultimateCooldown / 60)}s` : 'ULT READY';
+    });
 }
 
 // --- Networking ---
@@ -618,22 +649,42 @@ function connectWebSocket() {
                 roomCode = data.roomCode;
                 myPlayerId = data.playerId;
                 document.getElementById('display-room-code').innerText = roomCode;
+                if (data.maxPlayers > 2) {
+                    document.getElementById('lobby-waiting-text').innerText = `Waiting for players (1/${data.maxPlayers})...`;
+                } else {
+                    document.getElementById('lobby-waiting-text').innerText = 'Waiting for Player 2...';
+                }
                 showScreen('lobby');
                 break;
             case 'JOINED':
                 roomCode = data.roomCode;
                 myPlayerId = data.playerId;
-                showScreen('select');
+                if (data.maxPlayers > 2) {
+                    document.getElementById('select-message').innerText = 'Waiting for all players to join...';
+                    showScreen('lobby');
+                    document.getElementById('display-room-code').innerText = roomCode;
+                    document.getElementById('lobby-waiting-text').innerText = `Waiting for players...`;
+                } else {
+                    showScreen('select');
+                }
                 break;
             case 'PLAYER_JOINED':
+                if (data.maxPlayers > 2) {
+                    document.getElementById('lobby-waiting-text').innerText = `Waiting for players (${data.currentPlayers}/${data.maxPlayers})...`;
+                } else {
+                    showScreen('select');
+                }
+                break;
+            case 'ALL_PLAYERS_JOINED':
                 showScreen('select');
                 break;
             case 'GAME_START':
                 // Initialize players
-                const s1 = data.state.player1;
-                const s2 = data.state.player2;
-                players['player1'] = new Player('player1', s1.x, s1.y, CHARACTERS[s1.character]);
-                players['player2'] = new Player('player2', s2.x, s2.y, CHARACTERS[s2.character]);
+                Object.keys(data.state).forEach(pid => {
+                    const s = data.state[pid];
+                    players[pid] = new Player(pid, s.x, s.y, CHARACTERS[s.character]);
+                    players[pid].facingRight = s.facingRight;
+                });
                 
                 showScreen('hud');
                 canvas.style.display = 'block';
@@ -651,30 +702,39 @@ function connectWebSocket() {
                 }
                 break;
             case 'HP_UPDATE':
-                if (players['player1'] && data.player1 < players['player1'].hp) {
-                    players['player1'].hitTimer = 15;
-                    playHitSound();
-                    
-                    // Apply knockback if it's me
-                    if (myPlayerId === 'player1' && players['player2']) {
-                        const dir = players['player1'].x > players['player2'].x ? 1 : -1;
-                        players['player1'].vx = dir * 8;
-                        players['player1'].vy = -4;
-                    }
+                if (data.hpData) {
+                    Object.keys(data.hpData).forEach(pid => {
+                        if (players[pid] && data.hpData[pid] < players[pid].hp) {
+                            players[pid].hitTimer = 15;
+                            playHitSound();
+                            
+                            // Apply knockback if it's me
+                            if (myPlayerId === pid) {
+                                // Find closest opponent for knockback direction
+                                let closestOpponent = null;
+                                let minDistance = Infinity;
+                                Object.keys(players).forEach(otherPid => {
+                                    if (otherPid !== pid && players[otherPid].hp > 0) {
+                                        const dist = Math.abs(players[pid].x - players[otherPid].x);
+                                        if (dist < minDistance) {
+                                            minDistance = dist;
+                                            closestOpponent = players[otherPid];
+                                        }
+                                    }
+                                });
+                                
+                                if (closestOpponent) {
+                                    const dir = players[pid].x > closestOpponent.x ? 1 : -1;
+                                    players[pid].vx = dir * 8;
+                                    players[pid].vy = -4;
+                                }
+                            }
+                        }
+                        if (players[pid]) {
+                            players[pid].hp = data.hpData[pid];
+                        }
+                    });
                 }
-                if (players['player2'] && data.player2 < players['player2'].hp) {
-                    players['player2'].hitTimer = 15;
-                    playHitSound();
-
-                    // Apply knockback if it's me
-                    if (myPlayerId === 'player2' && players['player1']) {
-                        const dir = players['player2'].x > players['player1'].x ? 1 : -1;
-                        players['player2'].vx = dir * 8;
-                        players['player2'].vy = -4;
-                    }
-                }
-                if (players['player1']) players['player1'].hp = data.player1;
-                if (players['player2']) players['player2'].hp = data.player2;
                 updateHUD();
                 break;
             case 'ERROR':
@@ -703,9 +763,24 @@ function connectWebSocket() {
 }
 
 // --- Event Listeners ---
+document.getElementById('game-mode').addEventListener('change', (e) => {
+    const playersContainer = document.getElementById('players-count-container');
+    if (e.target.value === 'deathmatch') {
+        playersContainer.style.display = 'block';
+    } else {
+        playersContainer.style.display = 'none';
+    }
+});
+
 document.getElementById('btn-host').addEventListener('click', () => {
+    const gameMode = document.getElementById('game-mode').value;
+    let maxPlayers = 2;
+    if (gameMode === 'deathmatch') {
+        maxPlayers = parseInt(document.getElementById('max-players').value, 10);
+    }
+    
     connectWebSocket();
-    ws.onopen = () => ws.send(JSON.stringify({ type: 'HOST' }));
+    ws.onopen = () => ws.send(JSON.stringify({ type: 'HOST', gameMode, maxPlayers }));
 });
 
 document.getElementById('btn-join').addEventListener('click', () => {
@@ -729,6 +804,7 @@ document.getElementById('btn-game-over-ok').addEventListener('click', () => {
     // Reset UI
     document.getElementById('select-message').innerText = 'Waiting for opponent...';
     document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('hud-container').innerHTML = ''; // Clear dynamic HUD
     
     showScreen('menu');
 });
@@ -765,14 +841,18 @@ function gameLoop(timestamp) {
     }
     
     // Update Remote Player Timers
-    const otherPlayerId = myPlayerId === 'player1' ? 'player2' : 'player1';
-    if (players[otherPlayerId]) {
-        players[otherPlayerId].updateTimers();
-    }
+    Object.keys(players).forEach(pid => {
+        if (pid !== myPlayerId) {
+            players[pid].updateTimers();
+        }
+    });
 
     // Draw Players
-    if (players['player1']) players['player1'].draw(ctx, timestamp);
-    if (players['player2']) players['player2'].draw(ctx, timestamp);
+    Object.values(players).forEach(p => {
+        if (p.hp > 0 || p.hitTimer > 0) { // Draw if alive or still showing hit effect
+            p.draw(ctx, timestamp);
+        }
+    });
 
     updateHUD();
     requestAnimationFrame(gameLoop);

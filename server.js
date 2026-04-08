@@ -33,29 +33,54 @@ wss.on('connection', (ws) => {
             playerId = 'player1';
             currentRoom = roomCode;
             
+            const maxPlayers = data.maxPlayers || 2;
+            const gameMode = data.gameMode || '1v1';
+            
             rooms.set(roomCode, {
+                maxPlayers: maxPlayers,
+                gameMode: gameMode,
                 players: {
                     [playerId]: { ws, x: 200, y: 300, hp: 100, character: null, isReady: false, facingRight: true, action: 'idle' }
                 },
                 state: 'LOBBY'
             });
 
-            ws.send(JSON.stringify({ type: 'ROOM_CREATED', roomCode, playerId }));
+            ws.send(JSON.stringify({ type: 'ROOM_CREATED', roomCode, playerId, maxPlayers, gameMode }));
         }
 
         if (data.type === 'JOIN') {
             const roomCode = data.roomCode;
             if (rooms.has(roomCode)) {
                 const room = rooms.get(roomCode);
-                if (Object.keys(room.players).length < 2) {
-                    playerId = 'player2';
+                const currentPlayersCount = Object.keys(room.players).length;
+                
+                if (currentPlayersCount < room.maxPlayers) {
+                    playerId = `player${currentPlayersCount + 1}`;
                     currentRoom = roomCode;
-                    room.players[playerId] = { ws, x: 600, y: 300, hp: 100, character: null, isReady: false, facingRight: false, action: 'idle' };
                     
-                    ws.send(JSON.stringify({ type: 'JOINED', roomCode, playerId }));
+                    // Distribute starting positions
+                    const startX = 200 + (currentPlayersCount * 150);
+                    room.players[playerId] = { ws, x: startX, y: 300, hp: 100, character: null, isReady: false, facingRight: currentPlayersCount % 2 === 0, action: 'idle' };
                     
-                    // Notify player 1
-                    room.players['player1'].ws.send(JSON.stringify({ type: 'PLAYER_JOINED' }));
+                    ws.send(JSON.stringify({ type: 'JOINED', roomCode, playerId, maxPlayers: room.maxPlayers, gameMode: room.gameMode }));
+                    
+                    // Notify all other players
+                    Object.keys(room.players).forEach(pid => {
+                        if (pid !== playerId) {
+                            room.players[pid].ws.send(JSON.stringify({ 
+                                type: 'PLAYER_JOINED', 
+                                currentPlayers: currentPlayersCount + 1, 
+                                maxPlayers: room.maxPlayers 
+                            }));
+                        }
+                    });
+                    
+                    // If room is full, transition to SELECT_CHARACTER for everyone
+                    if (currentPlayersCount + 1 === room.maxPlayers) {
+                        Object.values(room.players).forEach(p => {
+                            p.ws.send(JSON.stringify({ type: 'ALL_PLAYERS_JOINED' }));
+                        });
+                    }
                 } else {
                     ws.send(JSON.stringify({ type: 'ERROR', message: 'Room is full' }));
                 }
@@ -71,20 +96,21 @@ wss.on('connection', (ws) => {
                     room.players[playerId].character = data.character;
                     room.players[playerId].isReady = true;
 
-                    // Check if both ready
-                    const p1 = room.players['player1'];
-                    const p2 = room.players['player2'];
+                    // Check if all ready
+                    const allReady = Object.values(room.players).every(p => p.isReady);
                     
-                    if (p1 && p2 && p1.isReady && p2.isReady) {
+                    if (allReady && Object.keys(room.players).length === room.maxPlayers) {
                         room.state = 'PLAYING';
                         
-                        const startState = {
-                            player1: { x: p1.x, y: p1.y, hp: p1.hp, character: p1.character, facingRight: p1.facingRight, action: p1.action },
-                            player2: { x: p2.x, y: p2.y, hp: p2.hp, character: p2.character, facingRight: p2.facingRight, action: p2.action }
-                        };
+                        const startState = {};
+                        Object.keys(room.players).forEach(pid => {
+                            const p = room.players[pid];
+                            startState[pid] = { x: p.x, y: p.y, hp: p.hp, character: p.character, facingRight: p.facingRight, action: p.action };
+                        });
 
-                        p1.ws.send(JSON.stringify({ type: 'GAME_START', state: startState }));
-                        p2.ws.send(JSON.stringify({ type: 'GAME_START', state: startState }));
+                        Object.values(room.players).forEach(p => {
+                            p.ws.send(JSON.stringify({ type: 'GAME_START', state: startState }));
+                        });
                     }
                 }
             }
@@ -100,18 +126,19 @@ wss.on('connection', (ws) => {
                     p.facingRight = data.facingRight;
                     p.action = data.action;
                     
-                    // Broadcast to other player
-                    const otherPlayerId = playerId === 'player1' ? 'player2' : 'player1';
-                    if (room.players[otherPlayerId]) {
-                        room.players[otherPlayerId].ws.send(JSON.stringify({
-                            type: 'STATE_UPDATE',
-                            playerId: playerId,
-                            x: p.x,
-                            y: p.y,
-                            facingRight: p.facingRight,
-                            action: p.action
-                        }));
-                    }
+                    // Broadcast to all other players
+                    Object.keys(room.players).forEach(pid => {
+                        if (pid !== playerId) {
+                            room.players[pid].ws.send(JSON.stringify({
+                                type: 'STATE_UPDATE',
+                                playerId: playerId,
+                                x: p.x,
+                                y: p.y,
+                                facingRight: p.facingRight,
+                                action: p.action
+                            }));
+                        }
+                    });
                 }
             }
         }
@@ -124,39 +151,33 @@ wss.on('connection', (ws) => {
                     const damage = data.damage;
                     if (room.players[targetId]) {
                         room.players[targetId].hp -= damage;
+                        if (room.players[targetId].hp < 0) room.players[targetId].hp = 0;
                         
-                        const p1 = room.players['player1'];
-                        const p2 = room.players['player2'];
+                        // Check how many players are alive
+                        const alivePlayers = Object.keys(room.players).filter(pid => room.players[pid].hp > 0);
+                        
+                        const hpData = {};
+                        Object.keys(room.players).forEach(pid => {
+                            hpData[pid] = room.players[pid].hp;
+                        });
 
-                        if(room.players[targetId].hp <= 0) {
-                            room.players[targetId].hp = 0;
+                        const msg = JSON.stringify({
+                            type: 'HP_UPDATE',
+                            hpData: hpData
+                        });
+                        
+                        Object.values(room.players).forEach(p => p.ws.send(msg));
+
+                        if(alivePlayers.length <= 1) {
                             room.state = 'GAME_OVER';
                             
-                            const msg = JSON.stringify({
-                                type: 'HP_UPDATE',
-                                player1: p1.hp,
-                                player2: p2.hp
-                            });
-                            p1.ws.send(msg);
-                            p2.ws.send(msg);
-                            
-                            const winnerId = targetId === 'player1' ? 'player2' : 'player1';
+                            const winnerId = alivePlayers.length === 1 ? alivePlayers[0] : 'Draw';
                             const gameOverMsg = JSON.stringify({
                                 type: 'GAME_OVER',
                                 winner: winnerId
                             });
-                            p1.ws.send(gameOverMsg);
-                            p2.ws.send(gameOverMsg);
-                        } else {
-                            // Broadcast new HP
-                            const msg = JSON.stringify({
-                                type: 'HP_UPDATE',
-                                player1: p1.hp,
-                                player2: p2.hp
-                            });
                             
-                            p1.ws.send(msg);
-                            p2.ws.send(msg);
+                            Object.values(room.players).forEach(p => p.ws.send(gameOverMsg));
                         }
                     }
                 }
@@ -168,11 +189,12 @@ wss.on('connection', (ws) => {
     ws.on('close', () => {
         if (currentRoom && rooms.has(currentRoom)) {
             const room = rooms.get(currentRoom);
-            const otherPlayerId = playerId === 'player1' ? 'player2' : 'player1';
             
-            if (room.players[otherPlayerId]) {
-                room.players[otherPlayerId].ws.send(JSON.stringify({ type: 'PLAYER_DISCONNECTED' }));
-            }
+            Object.keys(room.players).forEach(pid => {
+                if (pid !== playerId && room.players[pid].ws.readyState === WebSocket.OPEN) {
+                    room.players[pid].ws.send(JSON.stringify({ type: 'PLAYER_DISCONNECTED' }));
+                }
+            });
             rooms.delete(currentRoom);
         }
     });
