@@ -9,9 +9,14 @@ const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
 
 // Menu Music
-const menuMusic = new Audio('characters/menu_2.mp3');
+const menuMusic = new Audio('/characters/menu_2.mp3');
 menuMusic.loop = true;
 menuMusic.volume = 1;
+
+menuMusic.addEventListener('error', (e) => {
+    console.error("Failed to load menu music:", e);
+    console.log("Attempted path: /characters/menu_2.mp3");
+});
 
 function playHitSound() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -41,7 +46,9 @@ function updateMusic(screenName) {
     const menuScreens = ['menu', 'lobby', 'select', 'gameOver'];
     if (menuScreens.includes(screenName)) {
         if (menuMusic.paused) {
-            menuMusic.play().catch(e => console.log("Music play blocked until interaction"));
+            menuMusic.play().catch(e => {
+                console.warn("Music play blocked or failed:", e);
+            });
         }
     } else {
         menuMusic.pause();
@@ -401,11 +408,11 @@ class Player {
         // Only allow movement if not in a heavy action and not hit
         if ((this.action === 'idle' || this.action === 'run') && this.hitTimer === 0) {
             // Horizontal Movement
-            if (keys['a'] || keys['ArrowLeft']) {
+            if (keys['a'] || keys['arrowleft']) {
                 this.vx = -(this.config.stats?.speed || 5);
                 this.facingRight = false;
                 this.action = 'run';
-            } else if (keys['d'] || keys['ArrowRight']) {
+            } else if (keys['d'] || keys['arrowright']) {
                 this.vx = (this.config.stats?.speed || 5);
                 this.facingRight = true;
                 this.action = 'run';
@@ -415,7 +422,7 @@ class Player {
             }
 
             // Jump
-            if ((keys['w'] || keys['ArrowUp']) && this.y >= FLOOR_Y - this.height) {
+            if ((keys['w'] || keys['arrowup']) && this.y >= FLOOR_Y - this.height) {
                 this.vy = -(this.config.stats?.jumpForce || 12);
             }
 
@@ -963,7 +970,11 @@ async function init() {
     document.getElementById('btn-start-game').addEventListener('click', () => {
         showScreen('menu');
         if (menuMusic.paused) {
-            menuMusic.play().catch(e => {});
+            menuMusic.play().then(() => {
+                console.log("Music started successfully");
+            }).catch(e => {
+                console.error("Music play failed:", e);
+            });
         }
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
