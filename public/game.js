@@ -186,10 +186,12 @@ class Player {
         this.actionTimer = 0;
         this.hitTimer = 0;
         this.sprite = new Sprite(charConfig.name);
+        this.attackCooldown = 0;
     }
 
     update(keys) {
         if (this.hitTimer > 0) this.hitTimer--;
+        if (this.attackCooldown > 0) this.attackCooldown--;
 
         if (this.actionTimer > 0) {
             this.actionTimer--;
@@ -220,9 +222,10 @@ class Player {
             }
 
             // Attack
-            if (keys[' ']) {
+            if (keys[' '] && this.attackCooldown === 0) {
                 this.action = 'attack';
                 this.actionTimer = 15;
+                this.attackCooldown = 30; // ~0.5 seconds at 60fps
                 this.checkAttackHit();
             }
 
