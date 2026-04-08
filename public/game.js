@@ -27,7 +27,8 @@ const screens = {
     menu: document.getElementById('main-menu'),
     lobby: document.getElementById('lobby-screen'),
     select: document.getElementById('character-select'),
-    hud: document.getElementById('game-hud')
+    hud: document.getElementById('game-hud'),
+    gameOver: document.getElementById('game-over-screen')
 };
 
 // --- Character Configurations ---
@@ -367,9 +368,23 @@ function connectWebSocket() {
             case 'ERROR':
                 alert(data.message);
                 break;
+            case 'GAME_OVER':
+                gameState = 'GAME_OVER';
+                canvas.style.display = 'none';
+                if (data.winner === myPlayerId) {
+                    document.getElementById('game-over-title').innerText = 'You Win!';
+                    document.getElementById('game-over-title').style.color = '#2ecc71';
+                } else {
+                    document.getElementById('game-over-title').innerText = 'Game Over';
+                    document.getElementById('game-over-title').style.color = '#e74c3c';
+                }
+                showScreen('gameOver');
+                break;
             case 'PLAYER_DISCONNECTED':
-                alert('Opponent disconnected!');
-                window.location.reload();
+                if (gameState === 'PLAYING' || gameState === 'LOBBY' || gameState === 'SELECT') {
+                    alert('Opponent disconnected!');
+                    window.location.reload();
+                }
                 break;
         }
     };
@@ -402,6 +417,23 @@ document.querySelectorAll('.char-card').forEach(card => {
         
         document.getElementById('select-message').innerText = 'Ready! Waiting for opponent...';
     });
+});
+
+document.getElementById('btn-game-over-ok').addEventListener('click', () => {
+    if (ws) {
+        ws.close();
+    }
+    players = {};
+    myPlayerId = null;
+    roomCode = null;
+    myCharacter = null;
+    gameState = 'MENU';
+    
+    // Reset UI
+    document.getElementById('select-message').innerText = 'Waiting for opponent...';
+    document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+    
+    showScreen('menu');
 });
 
 // --- Game Loop ---

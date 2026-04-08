@@ -124,20 +124,40 @@ wss.on('connection', (ws) => {
                     const damage = data.damage;
                     if (room.players[targetId]) {
                         room.players[targetId].hp -= damage;
-                        if(room.players[targetId].hp < 0) room.players[targetId].hp = 0;
                         
-                        // Broadcast new HP
                         const p1 = room.players['player1'];
                         const p2 = room.players['player2'];
-                        
-                        const msg = JSON.stringify({
-                            type: 'HP_UPDATE',
-                            player1: p1.hp,
-                            player2: p2.hp
-                        });
-                        
-                        p1.ws.send(msg);
-                        p2.ws.send(msg);
+
+                        if(room.players[targetId].hp <= 0) {
+                            room.players[targetId].hp = 0;
+                            room.state = 'GAME_OVER';
+                            
+                            const msg = JSON.stringify({
+                                type: 'HP_UPDATE',
+                                player1: p1.hp,
+                                player2: p2.hp
+                            });
+                            p1.ws.send(msg);
+                            p2.ws.send(msg);
+                            
+                            const winnerId = targetId === 'player1' ? 'player2' : 'player1';
+                            const gameOverMsg = JSON.stringify({
+                                type: 'GAME_OVER',
+                                winner: winnerId
+                            });
+                            p1.ws.send(gameOverMsg);
+                            p2.ws.send(gameOverMsg);
+                        } else {
+                            // Broadcast new HP
+                            const msg = JSON.stringify({
+                                type: 'HP_UPDATE',
+                                player1: p1.hp,
+                                player2: p2.hp
+                            });
+                            
+                            p1.ws.send(msg);
+                            p2.ws.send(msg);
+                        }
                     }
                 }
              }
