@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Platform Fighter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="ui-container">
+        <!-- Main Menu -->
+        <div id="main-menu" class="screen active">
+            <h1>Pixel Fighter</h1>
+            <button id="btn-host">Host Game</button>
+            <div class="join-section">
+                <input type="text" id="input-room-code" placeholder="4-Digit Code" maxlength="4">
+                <button id="btn-join">Join Game</button>
+            </div>
+            <p id="menu-message"></p>
+        </div>
+
+        <!-- Lobby (Host waiting) -->
+        <div id="lobby-screen" class="screen">
+            <h2>Room Code: <span id="display-room-code">----</span></h2>
+            <p>Waiting for Player 2...</p>
+        </div>
+
+        <!-- Character Select -->
+        <div id="character-select" class="screen">
+            <h2>Select Your Character</h2>
+            <div class="character-list">
+                <div class="char-card" data-char="PixelKnight">
+                    <h3>PixelKnight</h3>
+                    <p>Balanced fighter</p>
+                </div>
+                <div class="char-card" data-char="Mage">
+                    <h3>Mage</h3>
+                    <p>Ranged attacker</p>
+                </div>
+                <div class="char-card" data-char="Tank">
+                    <h3>Tank</h3>
+                    <p>Heavy hitter</p>
+                </div>
+            </div>
+            <p id="select-message">Waiting for opponent...</p>
+        </div>
+
+        <!-- Game HUD -->
+        <div id="game-hud" class="screen">
+            <div class="player-hud p1-hud">
+                <div class="name">Player 1</div>
+                <div class="hp-bar-container">
+                    <div id="p1-hp-bar" class="hp-bar"></div>
+                </div>
+            </div>
+            <div class="player-hud p2-hud">
+                <div class="name">Player 2</div>
+                <div class="hp-bar-container">
+                    <div id="p2-hp-bar" class="hp-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script src="game.js"></script>
+</body>
+</html>

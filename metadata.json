@@ -1,0 +1,5 @@
+{
+  "name": "Pixel Platform Fighter",
+  "description": "A 2D Pixel-Art Platform Fighter with WebSockets for multiplayer synchronization.",
+  "requestFramePermissions": []
+}
