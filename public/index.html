@@ -24,17 +24,17 @@
         <!-- Main Menu -->
         <div id="main-menu" class="screen">
             <h1>Pixel Fighter</h1>
-            <div class="host-section" style="margin-bottom: 20px;">
-                <div style="margin-bottom: 10px;">
-                    <label for="game-mode" style="font-size: 12px;">Mode:</label>
-                    <select id="game-mode" style="font-family: var(--font-pixel); padding: 5px; background: #333; color: white; border: 2px solid white;">
+            <div class="host-section">
+                <div class="input-group">
+                    <label for="game-mode">Mode:</label>
+                    <select id="game-mode">
                         <option value="1v1">1 vs 1</option>
                         <option value="deathmatch">Deathmatch</option>
                     </select>
                 </div>
-                <div id="players-count-container" style="display: none; margin-bottom: 10px;">
-                    <label for="max-players" style="font-size: 12px;">Players:</label>
-                    <input type="number" id="max-players" min="3" max="4" value="3" style="width: 50px; padding: 5px;">
+                <div id="players-count-container" class="input-group" style="display: none;">
+                    <label for="max-players">Players:</label>
+                    <input type="number" id="max-players" min="3" max="4" value="3">
                 </div>
                 <button id="btn-host">Host Game</button>
             </div>
@@ -63,7 +63,7 @@
 
         <!-- Game HUD -->
         <div id="game-hud" class="screen">
-            <div id="hud-container" style="display: flex; justify-content: space-between; width: 100%; padding: 10px; box-sizing: border-box; flex-wrap: wrap;">
+            <div id="hud-container">
                 <!-- Dynamically populated -->
             </div>
         </div>

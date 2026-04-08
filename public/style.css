@@ -31,22 +31,28 @@ body {
 #ui-container {
     position: absolute;
     width: 800px;
+    max-width: 100vw;
     height: 600px;
+    max-height: 100vh;
     pointer-events: none; /* Let clicks pass through to canvas when playing */
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
 }
 
 .screen {
     display: none;
     flex-direction: column;
     align-items: center;
-    background: rgba(0, 0, 0, 0.85);
-    padding: 40px;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 20px;
     border: 4px solid #fff;
     pointer-events: auto;
     text-align: center;
+    max-width: 90%;
+    max-height: 90%;
+    overflow-y: auto;
 }
 
 .screen.active {
@@ -96,18 +102,72 @@ input {
     align-items: center;
 }
 
+.host-section {
+    margin-bottom: 20px;
+}
+
+.input-group {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.input-group label {
+    font-size: 12px;
+}
+
+#game-mode {
+    font-family: var(--font-pixel);
+    padding: 5px;
+    background: #333;
+    color: white;
+    border: 2px solid white;
+}
+
+#max-players {
+    width: 50px;
+    padding: 5px;
+}
+
+#hud-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    flex-wrap: wrap;
+}
+
 .character-list {
     display: flex;
-    gap: 20px;
-    margin: 20px 0;
+    gap: 10px;
+    margin: 10px 0;
+    flex-wrap: nowrap; /* Change to nowrap for horizontal scroll */
+    justify-content: flex-start;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 10px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.character-list::-webkit-scrollbar {
+    height: 6px;
+}
+
+.character-list::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 3px;
 }
 
 .char-card {
     border: 4px solid #555;
-    padding: 20px;
+    padding: 10px;
     cursor: pointer;
     transition: all 0.2s;
-    width: 150px;
+    width: 120px;
+    flex-shrink: 0;
 }
 
 .char-card:hover {
@@ -178,6 +238,7 @@ input {
     flex-direction: row;
     align-items: flex-start;
     pointer-events: none;
+    z-index: 50;
 }
 
 #game-hud.active {
@@ -185,8 +246,9 @@ input {
 }
 
 .player-hud {
-    padding: 10px;
-    width: 300px;
+    padding: 5px;
+    width: 40%;
+    max-width: 250px;
     text-align: center;
 }
 
@@ -242,6 +304,12 @@ input {
     color: #fff;
     text-align: center;
     padding: 20px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10000;
 }
 
 #orientation-overlay h2 {
@@ -258,13 +326,13 @@ input {
 }
 
 #start-screen h1 {
-    font-size: 48px;
-    margin-bottom: 40px;
+    font-size: clamp(24px, 8vw, 48px);
+    margin-bottom: 20px;
     text-shadow: 4px 4px 0 var(--primary);
 }
 
 #btn-start-game {
-    font-size: 24px;
+    font-size: clamp(14px, 4vw, 24px);
     animation: pulse 1.5s infinite;
 }
 
@@ -277,12 +345,12 @@ input {
 /* Mobile Controls */
 #mobile-controls {
     position: fixed;
-    bottom: 20px;
+    bottom: 30px;
     left: 0;
     right: 0;
     display: flex;
     justify-content: space-between;
-    padding: 0 40px;
+    padding: 0 5%;
     pointer-events: none;
     z-index: 100;
 }
@@ -363,5 +431,32 @@ input {
         width: 100vw;
         height: auto;
         max-height: 100vh;
+    }
+    
+    h1 { font-size: 20px; }
+    h2 { font-size: 16px; }
+    
+    button {
+        padding: 10px 15px;
+        font-size: 10px;
+        margin: 5px;
+    }
+    
+    input {
+        padding: 8px;
+        font-size: 12px;
+        width: 120px;
+    }
+
+    .player-hud {
+        width: 35%;
+    }
+    
+    .hp-bar-container {
+        height: 12px;
+    }
+    
+    .ult-cooldown-container {
+        height: 8px;
     }
 }
