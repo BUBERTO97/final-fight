@@ -102,7 +102,7 @@ let myCharacter = null;
 let gameMode = '1v1';
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 const keys = {};
-let maxPlayers = 3;
+let maxPlayers = 2;
 
 const CHARACTERS = {
     ShadowAssassin: { ultimateSkill: function (player) { player.action = 'ultimate'; player.actionTimer = 20; } },
@@ -151,6 +151,7 @@ const screens = {
     lobby: new THREE.Group(),
     select: new THREE.Group(),
     numpad: new THREE.Group(),
+    keyboard: new THREE.Group(),
     hud: new THREE.Group(),
     gameOver: new THREE.Group(),
     gameWorld: new THREE.Group()
@@ -308,7 +309,9 @@ const selNameText = createUIText("[NAME]", 16, "#f1c40f", 200, 50, 300, 100);
 screens.select.add(selNameText);
 screens.select.add(createUIText("Select Character", 20, "#fff", 800, 50, 0, 50));
 screens.select.add(createUIButton("Set Name", 150, 40, "#e67e22", 325, 150, () => {
-    hiddenName.focus();
+    currentName = hiddenName.value;
+    updateUIText(kbDisplay, currentName);
+    showScreen('keyboard');
 }));
 
 hiddenName.addEventListener('input', () => {
@@ -334,15 +337,93 @@ function buildCharacterSelectUI() {
     let xOffset = 25;
     Object.keys(CHARACTERS).forEach(charKey => {
         const char = CHARACTERS[charKey];
-        const name = char.name ? char.name.split(' ')[0] : charKey;
-        const btn = createUIButton(name, 140, 140, "#333", xOffset, 250, () => {
-            myCharacter = charKey;
-            const playerName = hiddenName.value.trim() || myPlayerId || 'Player';
-            ws.send(JSON.stringify({ type: 'SELECT_CHARACTER', character: myCharacter, playerName }));
-            updateUIText(selStatus, "Ready! Waiting...");
-        });
-        screens.select.add(btn);
+        const w = 140; const h = 170;
+        const cvs = document.createElement('canvas');
+        cvs.width = w; cvs.height = h;
+        const cctx = cvs.getContext('2d');
+        const drawCard = (selected) => {
+            cctx.fillStyle = selected ? "rgba(231,76,60,0.5)" : "#333";
+            cctx.fillRect(0, 0, w, h);
+            cctx.strokeStyle = selected ? '#f1c40f' : '#fff';
+            cctx.lineWidth = 4;
+            cctx.strokeRect(0, 0, w, h);
+            cctx.fillStyle = '#fff';
+            cctx.font = `10px "Press Start 2P", monospace`;
+            cctx.textAlign = 'center'; cctx.textBaseline = 'top';
+            const name = char.name ? char.name.split(' ')[0] : charKey;
+            cctx.fillText(name, w/2, 10);
+            cctx.font = `8px "Press Start 2P", monospace`;
+            cctx.fillStyle = '#2ecc71';
+            cctx.fillText(`HP: ${char.stats?.hp || 100}`, w/2, h - 45);
+            cctx.fillStyle = '#e74c3c';
+            cctx.fillText(`ATK: ${char.stats?.attackDamage || 10}`, w/2, h - 30);
+            cctx.fillStyle = '#f1c40f';
+            const ultName = char.ultimate?.name || 'Skill';
+            cctx.fillText(`ULT: ${ultName}`, w/2, h - 15);
+        };
+        drawCard(false);
+        const tex = new THREE.CanvasTexture(cvs);
+        tex.flipY = false;
+        tex.magFilter = THREE.NearestFilter;
+        const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+        mesh.position.set(xOffset + w/2, 230 + h/2, 10);
+        
+        const src = char.visual?.sprites?.idle?.src || `sprites/${charKey.toLowerCase().split(' ')[0]}_idle.svg`;
+        if (src) {
+            const img = new Image();
+            img.src = './' + src;
+            img.onload = () => { cctx.drawImage(img, w/2 - 30, 30, 60, 60); tex.needsUpdate = true; };
+        }
+        
+        mesh.userData = { 
+            isCharCard: true,
+            drawCard: (sel) => { drawCard(sel); tex.needsUpdate = true; },
+            onClick: () => {
+                Object.values(screens.select.children).forEach(c => {
+                    if (c.userData && c.userData.isCharCard) c.userData.drawCard(false);
+                });
+                drawCard(true); tex.needsUpdate = true;
+                myCharacter = charKey;
+                const playerName = hiddenName.value.trim() || myPlayerId || 'Player';
+                ws.send(JSON.stringify({ type: 'SELECT_CHARACTER', character: myCharacter, playerName }));
+                updateUIText(selStatus, "Ready! Waiting...");
+            }
+        };
+        screens.select.add(mesh);
         xOffset += 155;
+    });
+
+    // Build Keyboard UI here as well
+    let currentName = "";
+    screens.keyboard.add(createUIText("ENTER NAME", 24, "#fff", 800, 50, 0, 50));
+    window.kbDisplay = createUIText("", 32, "#f1c40f", 400, 60, 200, 120);
+    screens.keyboard.add(window.kbDisplay);
+    const kbRows = [
+        ['Q','W','E','R','T','Y','U','I','O','P'],
+        ['A','S','D','F','G','H','J','K','L'],
+        ['Z','X','C','V','B','N','M'],
+        ['SPACE', 'BKSP', 'OK']
+    ];
+    let kbY = 220;
+    kbRows.forEach(row => {
+        let kbX = 400 - (row.length * (row.includes('SPACE')?95:65))/2;
+        row.forEach(key => {
+            let w = key.length > 1 ? 90 : 60;
+            screens.keyboard.add(createUIButton(key, w, 60, "#333", kbX, kbY, () => {
+                if (key === 'BKSP') currentName = currentName.slice(0, -1);
+                else if (key === 'OK') {
+                    hiddenName.value = currentName;
+                    updateUIText(selNameText, currentName || "[NAME]");
+                    showScreen('select');
+                }
+                else if (key === 'SPACE') { if (currentName.length < 8) currentName += ' '; }
+                else { if (currentName.length < 8) currentName += key; }
+                updateUIText(window.kbDisplay, currentName);
+            }));
+            kbX += w + 5;
+        });
+        kbY += 70;
     });
 }
 
