@@ -401,7 +401,7 @@ function buildCharacterSelectUI() {
         if (src) {
             const img = new Image();
             img.src = './' + src;
-            img.onload = () => { cctx.drawImage(img, w/2 - 30, 30, 60, 60); tex.needsUpdate = true; };
+            img.onload = () => { cctx.drawImage(img, 0, 0, 64, 64, w/2 - 30, 30, 60, 60); tex.needsUpdate = true; };
         }
         
         mesh.userData = { 
@@ -478,10 +478,16 @@ class Sprite {
         states.forEach(s => {
             const src = this.config.visual?.sprites?.[s]?.src || `sprites/${charKey.toLowerCase().split(' ')[0]}_${s}.svg`;
             if(src) {
-                this.texMap[s] = getTexture(src);
+                const tex = getTexture(src).clone();
+                tex.wrapS = THREE.RepeatWrapping;
+                tex.repeat.set(0.25, 1);
+                this.texMap[s] = tex;
                 if (s === 'idle') this.mesh.material.map = this.texMap['idle'];
             }
         });
+        
+        this.frameCounter = 0;
+        this.currentFrame = 0;
 
     }
 
@@ -491,6 +497,16 @@ class Sprite {
         } else if (this.texMap['idle']) {
             this.mesh.material.map = this.texMap['idle'];
         }
+        
+        this.frameCounter++;
+        if (this.frameCounter > 8) {
+            this.frameCounter = 0;
+            this.currentFrame = (this.currentFrame + 1) % 4;
+        }
+        if (this.mesh.material.map) {
+            this.mesh.material.map.offset.x = this.currentFrame * 0.25;
+        }
+
         this.mesh.scale.x = facingRight ? 1 : -1;
         this.mesh.position.set(x + 25, y + 35, 1);
     }
