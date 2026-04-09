@@ -226,12 +226,13 @@ function createUIText(text, size, color, w, h, x, y) {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
     mesh.position.set(x + w/2, y + h/2, 5);
     
-    mesh.userData = { cvs, cctx, tex, w, h, color, size };
+    mesh.userData = { cvs, cctx, tex, w, h, color, size, text };
     return mesh;
 }
 
 function updateUIText(mesh, text) {
     const data = mesh.userData;
+    data.text = text;
     data.cctx.clearRect(0,0,data.w,data.h);
     data.cctx.fillStyle = data.color;
     data.cctx.fillText(text, data.w/2, data.h/2);
@@ -253,6 +254,7 @@ const hiddenName = document.getElementById('hidden-player-name');
 
 const modeBtn = createUIButton("Mode: 1v1", 250, 50, "#333", 275, 150, () => {
     gameMode = gameMode === '1v1' ? 'deathmatch' : '1v1';
+    maxPlayers = gameMode === '1v1' ? 2 : 4;
     const ctx = modeBtn.material.map.image.getContext('2d');
     ctx.fillStyle = "#333"; ctx.fillRect(0,0,250,50);
     ctx.strokeStyle = "#fff"; ctx.strokeRect(0,0,250,50);
@@ -321,6 +323,7 @@ screens.menu.add(createUIButton("Join Room", 250, 50, "#3498db", 275, 480, () =>
 
 hiddenCode.addEventListener('input', () => {
     updateUIText(joinCodeText, hiddenCode.value || "[CODE]");
+    if (numpadDisplay) updateUIText(numpadDisplay, hiddenCode.value.padEnd(4, '-'));
 });
 
 const lobbyText = createUIText("Room Code: ----", 24, "#fff", 800, 50, 0, 200);
@@ -339,6 +342,7 @@ screens.select.add(createUIButton("Set Name", 150, 40, "#e67e22", 325, 150, () =
 
 hiddenName.addEventListener('input', () => {
     updateUIText(selNameText, hiddenName.value || "[NAME]");
+    if (window.kbDisplay) updateUIText(window.kbDisplay, hiddenName.value);
 });
 
 const selStatus = createUIText("Waiting...", 16, "#ccc", 800, 50, 0, 500);
@@ -672,9 +676,12 @@ function connectWebSocket() {
                 myPlayerId = data.playerId;
                 updateUIText(lobbyText, `Room Code: ${roomCode}`);
                 if (data.maxPlayers > 2) {
-                    updateUIText(lobbyWait, `Waiting for players...`);
+                    updateUIText(lobbyWait, `Waiting for players... (1/${data.maxPlayers})`);
                 }
                 showScreen(data.type==='JOINED' ? 'select' : 'lobby');
+                break;
+            case 'PLAYER_JOINED':
+                updateUIText(lobbyWait, `Waiting for players... (${data.currentPlayers}/${data.maxPlayers})`);
                 break;
             case 'ALL_PLAYERS_JOINED':
                 showScreen('select');
@@ -790,7 +797,7 @@ document.fonts.ready.then(() => {
     Object.values(screens).forEach(s => {
         s.children.forEach(obj => {
             if (obj.userData && obj.userData.tex) {
-                updateUIText(obj, obj.userData.cvs.getContext('2d').measureText("").width === 0 ? "" : ""); // Trigger redraw
+                updateUIText(obj, obj.userData.text); // Trigger redraw using stored text
                 // Actually, let's just rebuild the UI or force update
                 if (obj.userData.onClick || obj.userData.onDown) {
                     // It's a button, redraw it
