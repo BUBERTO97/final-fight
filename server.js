@@ -2,12 +2,19 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
+const compression = require('compression');
 
 const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+app.use(compression());
 
-app.use(express.static(path.join(__dirname, 'public')));
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ 
+    server,
+    perMessageDeflate: false // Disable for better performance on small messages
+});
+
+// Cache static assets for 1 year to improve client performance
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1y' }));
 
 // Game State
 const rooms = new Map();

@@ -10,9 +10,19 @@ const GRAVITY = 0.6;
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
 
-const menuMusic = new Audio('./songs/menu_2.mp3');
+// --- Asset Caching ---
+const audioCache = {};
+function getAudio(src) {
+    if (audioCache[src]) return audioCache[src];
+    const audio = new Audio(src);
+    audioCache[src] = audio;
+    return audio;
+}
+
+const menuMusic = getAudio('./songs/menu_2.mp3');
 menuMusic.loop = true;
 menuMusic.volume = 1;
+
 
 const gameMusicPlaylist = [
     './songs/game_1.mp3',
@@ -44,8 +54,10 @@ function playGameTrack(index) {
         gameMusicSource = null;
     }
 
-    gameMusicAudio = new Audio(gameMusicPlaylist[index]);
+    gameMusicAudio = getAudio(gameMusicPlaylist[index]);
     gameMusicAudio.loop = false;
+    gameMusicAudio.currentTime = 0; // reset
+
 
     if (audioCtx.state === 'suspended') audioCtx.resume();
     gameMusicSource = audioCtx.createMediaElementSource(gameMusicAudio);
@@ -162,6 +174,17 @@ Object.values(screens).forEach(s => {
 });
 
 const texLoader = new THREE.TextureLoader();
+const textureCache = {};
+
+function getTexture(src) {
+    if (textureCache[src]) return textureCache[src];
+    const tex = texLoader.load('./' + src);
+    tex.minFilter = THREE.NearestFilter;
+    tex.magFilter = THREE.NearestFilter;
+    textureCache[src] = tex;
+    return tex;
+}
+
 
 function createUIButton(text, w, h, bg, x, y, onClick, onDown, onUp) {
     const cvs = document.createElement('canvas');
@@ -450,14 +473,11 @@ class Sprite {
         states.forEach(s => {
             const src = this.config.visual?.sprites?.[s]?.src || `sprites/${charKey.toLowerCase().split(' ')[0]}_${s}.svg`;
             if(src) {
-                texLoader.load('./' + src, tex => {
-                    tex.minFilter = THREE.NearestFilter;
-                    tex.magFilter = THREE.NearestFilter;
-                    this.texMap[s] = tex;
-                    if (s === 'idle') this.mesh.material.map = this.texMap['idle'];
-                });
+                this.texMap[s] = getTexture(src);
+                if (s === 'idle') this.mesh.material.map = this.texMap['idle'];
             }
         });
+
     }
 
     draw(x, y, state, facingRight) {
@@ -734,8 +754,17 @@ renderer.setAnimationLoop((time) => {
             }
             if (myP.vx===0 && myP.action!=='attack' && myP.action!=='ultimate') myP.action = 'idle';
 
+            // WebSocket optimization: Only send if changed
             if (time - lastSync > 33) {
-                ws.send(JSON.stringify({ type: 'UPDATE_STATE', x: myP.x, y: myP.y, facingRight: myP.facingRight, action: myP.action }));
+                if (window.lastSentState === undefined || 
+                    window.lastSentState.x !== myP.x || 
+                    window.lastSentState.y !== myP.y || 
+                    window.lastSentState.facingRight !== myP.facingRight || 
+                    window.lastSentState.action !== myP.action) {
+                    
+                    window.lastSentState = { x: myP.x, y: myP.y, facingRight: myP.facingRight, action: myP.action };
+                    ws.send(JSON.stringify({ type: 'UPDATE_STATE', x: myP.x, y: myP.y, facingRight: myP.facingRight, action: myP.action }));
+                }
                 lastSync = time;
             }
         }
