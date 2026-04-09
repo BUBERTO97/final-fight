@@ -10,14 +10,14 @@ const GRAVITY = 0.6;
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
 
-const menuMusic = new Audio('/songs/menu_2.mp3');
+const menuMusic = new Audio('./songs/menu_2.mp3');
 menuMusic.loop = true;
 menuMusic.volume = 1;
 
 const gameMusicPlaylist = [
-    '/songs/game_1.mp3',
-    '/songs/game_2.mp3',
-    '/songs/game_3.mp3'
+    './songs/game_1.mp3',
+    './songs/game_2.mp3',
+    './songs/game_3.mp3'
 ];
 let gameMusicIndex = 0;
 let gameMusicAudio = null;
@@ -88,7 +88,9 @@ function playHitSound() {
 
 // --- WebSocket Setup ---
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const wsUrl = `${protocol}//${window.location.host}`;
+let wsPath = window.location.pathname.replace(/\/index\.html$/, '');
+if (wsPath.endsWith('/')) wsPath = wsPath.slice(0, -1);
+const wsUrl = `${protocol}//${window.location.host}${wsPath}`;
 let ws;
 
 // --- Game State ---
@@ -114,7 +116,7 @@ async function loadCharacterData() {
     const chars = ['ShadowAssassin', 'FrostMage', 'FlameBerserker', 'TechGuardian', 'StormArcher'];
     const promises = chars.map(async (charKey) => {
         try {
-            const response = await fetch(`/characters/${charKey}.json`);
+            const response = await fetch(`./characters/${charKey}.json`);
             if (response.ok) {
                 Object.assign(CHARACTERS[charKey], await response.json());
             }
@@ -367,7 +369,7 @@ class Sprite {
         states.forEach(s => {
             const src = this.config.visual?.sprites?.[s]?.src || `sprites/${charKey.toLowerCase().split(' ')[0]}_${s}.svg`;
             if(src) {
-                texLoader.load('/' + src, tex => {
+                texLoader.load('./' + src, tex => {
                     tex.minFilter = THREE.NearestFilter;
                     tex.magFilter = THREE.NearestFilter;
                     this.texMap[s] = tex;
