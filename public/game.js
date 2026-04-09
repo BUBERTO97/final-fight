@@ -243,9 +243,12 @@ function renderCharacterCards() {
             card.classList.add('selected');
             myCharacter = charKey;
             
+            const playerName = document.getElementById('player-name').value.trim() || myPlayerId || 'Player';
+            
             ws.send(JSON.stringify({
                 type: 'SELECT_CHARACTER',
-                character: myCharacter
+                character: myCharacter,
+                playerName: playerName
             }));
             
             document.getElementById('select-message').innerText = 'Ready! Waiting for opponent...';
@@ -368,8 +371,9 @@ class Sprite {
 
 // --- Player Class ---
 class Player {
-    constructor(id, x, y, charConfig) {
+    constructor(id, x, y, charConfig, playerName) {
         this.id = id;
+        this.playerName = playerName || id;
         this.x = x;
         this.y = y;
         this.vx = 0;
@@ -553,14 +557,11 @@ class Player {
             ctx.restore();
         }
 
-        // Draw Player Name and Character above head
+        // Draw Player Name above head
         ctx.fillStyle = 'white';
         ctx.font = '10px "Press Start 2P"';
         ctx.textAlign = 'center';
-        ctx.fillText(this.id, this.x + this.width / 2, this.y - 22);
-        ctx.fillStyle = '#f1c40f'; // Gold color for character name
-        ctx.font = '8px "Press Start 2P"';
-        ctx.fillText(this.config.name, this.x + this.width / 2, this.y - 10);
+        ctx.fillText(this.playerName, this.x + this.width / 2, this.y - 10);
 
         // Draw Attack Visuals
         if (this.action === 'attack') {
@@ -636,21 +637,31 @@ function setupMobileControls() {
         'ctrl-ult': 'e'
     };
 
+    // Prevent any touch-move gestures on the entire controls area
+    // so the browser doesn't interpret D-pad presses as scrolls/pans
+    mobileControls.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+
     Object.keys(touchMap).forEach(id => {
         const btn = document.getElementById(id);
+        if (!btn) return;
         const key = touchMap[id];
 
         const handleStart = (e) => {
             e.preventDefault();
+            e.stopPropagation();
             keys[key] = true;
         };
         const handleEnd = (e) => {
             e.preventDefault();
+            e.stopPropagation();
             keys[key] = false;
         };
 
-        btn.addEventListener('touchstart', handleStart);
-        btn.addEventListener('touchend', handleEnd);
+        // { passive: false } is critical – without it, preventDefault() is ignored
+        // on touch events and the browser consumes them for scrolling/panning
+        btn.addEventListener('touchstart', handleStart, { passive: false });
+        btn.addEventListener('touchend', handleEnd, { passive: false });
+        btn.addEventListener('touchcancel', handleEnd, { passive: false });
         btn.addEventListener('mousedown', handleStart);
         btn.addEventListener('mouseup', handleEnd);
         btn.addEventListener('mouseleave', handleEnd);
@@ -717,7 +728,7 @@ function updateHUD() {
             playerHud.className = `player-hud ${pid}-hud`;
             playerHud.style.width = Object.keys(players).length > 2 ? '200px' : '300px';
             playerHud.innerHTML = `
-                <div class="name">${pid}</div>
+                <div class="name">${players[pid].playerName || pid}</div>
                 <div class="hp-bar-container">
                     <div id="${pid}-hp-bar" class="hp-bar"></div>
                 </div>
@@ -784,7 +795,7 @@ function connectWebSocket() {
                 // Initialize players
                 Object.keys(data.state).forEach(pid => {
                     const s = data.state[pid];
-                    players[pid] = new Player(pid, s.x, s.y, CHARACTERS[s.character]);
+                    players[pid] = new Player(pid, s.x, s.y, CHARACTERS[s.character], s.playerName);
                     players[pid].facingRight = s.facingRight;
                 });
                 

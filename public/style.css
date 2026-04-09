@@ -140,6 +140,27 @@ input {
     flex-wrap: wrap;
 }
 
+.name-input-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.name-input-group label {
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.name-input-group input {
+    width: 160px;
+    padding: 8px 10px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
 .character-list {
     display: flex;
     gap: 10px;
@@ -379,7 +400,7 @@ input {
     align-items: center;
     border-radius: 50%; /* Circle buttons for better feel */
     user-select: none;
-    touch-action: manipulation;
+    touch-action: none;
     margin: 5px;
     padding: 0;
     box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);

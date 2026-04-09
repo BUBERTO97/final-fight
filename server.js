@@ -94,6 +94,7 @@ wss.on('connection', (ws) => {
                 const room = rooms.get(currentRoom);
                 if(room.players[playerId]) {
                     room.players[playerId].character = data.character;
+                    room.players[playerId].playerName = data.playerName || playerId;
                     room.players[playerId].isReady = true;
 
                     // Check if all ready
@@ -105,7 +106,7 @@ wss.on('connection', (ws) => {
                         const startState = {};
                         Object.keys(room.players).forEach(pid => {
                             const p = room.players[pid];
-                            startState[pid] = { x: p.x, y: p.y, hp: p.hp, character: p.character, facingRight: p.facingRight, action: p.action };
+                            startState[pid] = { x: p.x, y: p.y, hp: p.hp, character: p.character, playerName: p.playerName || pid, facingRight: p.facingRight, action: p.action };
                         });
 
                         Object.values(room.players).forEach(p => {

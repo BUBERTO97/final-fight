@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div id="ui-container">
         <!-- Orientation Overlay -->
@@ -42,7 +44,8 @@
                 <input type="text" id="input-room-code" placeholder="4-Digit Code" maxlength="4">
                 <button id="btn-join">Join Game</button>
             </div>
-            <button id="btn-fullscreen" style="display: none; margin-top: 20px; background: #555; font-size: 10px;">Fullscreen</button>
+            <button id="btn-fullscreen"
+                style="display: none; margin-top: 20px; background: #555; font-size: 10px;">Fullscreen</button>
             <p id="menu-message"></p>
         </div>
 
@@ -55,6 +58,10 @@
         <!-- Character Select -->
         <div id="character-select" class="screen">
             <h2>Select Your Character</h2>
+            <div class="name-input-group">
+                <label for="player-name">Your Name:</label>
+                <input type="text" id="player-name" placeholder="Enter name" maxlength="12" autocomplete="off">
+            </div>
             <div class="character-list">
                 <p>Loading characters...</p>
             </div>
@@ -82,7 +89,6 @@
                 <button id="ctrl-left" class="ctrl-btn">◀</button>
                 <button id="ctrl-right" class="ctrl-btn">▶</button>
             </div>
-            <button id="ctrl-down" class="ctrl-btn">▼</button>
         </div>
         <div class="actions">
             <button id="ctrl-ult" class="ctrl-btn ult">U</button>
@@ -94,4 +100,5 @@
 
     <script src="game.js"></script>
 </body>
+
 </html>
