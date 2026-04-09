@@ -148,6 +148,7 @@ const screens = {
     menu: new THREE.Group(),
     lobby: new THREE.Group(),
     select: new THREE.Group(),
+    numpad: new THREE.Group(),
     hud: new THREE.Group(),
     gameOver: new THREE.Group(),
     gameWorld: new THREE.Group()
@@ -243,7 +244,44 @@ const joinCodeText = createUIText("[CODE]", 16, "#f1c40f", 250, 50, 275, 350);
 screens.menu.add(joinCodeText);
 
 screens.menu.add(createUIButton("Enter Code", 250, 50, "#e67e22", 275, 410, () => {
-    hiddenCode.focus();
+    showScreen('numpad');
+}));
+
+// Build Numpad UI
+screens.numpad.add(createUIText("ENTER ROOM CODE", 24, "#fff", 800, 50, 0, 50));
+const numpadDisplay = createUIText("----", 32, "#f1c40f", 400, 60, 200, 120);
+screens.numpad.add(numpadDisplay);
+
+const addDigit = (d) => {
+    if (hiddenCode.value.length < 4) {
+        hiddenCode.value += d;
+        updateUIText(numpadDisplay, hiddenCode.value.padEnd(4, '-'));
+        updateUIText(joinCodeText, hiddenCode.value || "[CODE]");
+    }
+};
+
+const clearDigits = () => {
+    hiddenCode.value = "";
+    updateUIText(numpadDisplay, "----");
+    updateUIText(joinCodeText, "[CODE]");
+};
+
+// Layout for numpad
+const startX = 275;
+const startY = 200;
+const btnSize = 70;
+const gap = 15;
+
+for (let i = 1; i <= 9; i++) {
+    const row = Math.floor((i - 1) / 3);
+    const col = (i - 1) % 3;
+    screens.numpad.add(createUIButton(i.toString(), btnSize, btnSize, "#333", startX + col * (btnSize + gap), startY + row * (btnSize + gap), () => addDigit(i.toString())));
+}
+// 0, Clear, Back
+screens.numpad.add(createUIButton("0", btnSize, btnSize, "#333", startX + (btnSize + gap), startY + 3 * (btnSize + gap), () => addDigit("0")));
+screens.numpad.add(createUIButton("CLR", btnSize, btnSize, "#c0392b", startX, startY + 3 * (btnSize + gap), () => clearDigits()));
+screens.numpad.add(createUIButton("OK", btnSize, btnSize, "#27ae60", startX + 2 * (btnSize + gap), startY + 3 * (btnSize + gap), () => {
+    showScreen('menu');
 }));
 
 screens.menu.add(createUIButton("Join Room", 250, 50, "#3498db", 275, 480, () => {
@@ -409,6 +447,10 @@ class Player {
 function showScreen(name) {
     Object.values(screens).forEach(s => s.visible = false);
     if(screens[name]) screens[name].visible = true;
+    
+    if (name === 'numpad') {
+        updateUIText(numpadDisplay, hiddenCode.value.padEnd(4, '-'));
+    }
     
     if (name === 'gameWorld' || name === 'hud') {
         screens.gameWorld.visible = true;
