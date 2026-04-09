@@ -115,6 +115,7 @@ let gameMode = '1v1';
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 const keys = {};
 let maxPlayers = 2;
+let currentName = "";
 
 const CHARACTERS = {
     ShadowAssassin: { ultimateSkill: function (player) { player.action = 'ultimate'; player.actionTimer = 20; } },
@@ -392,7 +393,7 @@ function buildCharacterSelectUI() {
         const tex = new THREE.CanvasTexture(cvs);
         tex.flipY = false;
         tex.magFilter = THREE.NearestFilter;
-        const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+        const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
         mesh.position.set(xOffset + w/2, 230 + h/2, 10);
         
@@ -422,7 +423,7 @@ function buildCharacterSelectUI() {
     });
 
     // Build Keyboard UI here as well
-    let currentName = "";
+    currentName = "";
     screens.keyboard.add(createUIText("ENTER NAME", 24, "#fff", 800, 50, 0, 50));
     window.kbDisplay = createUIText("", 32, "#f1c40f", 400, 60, 200, 120);
     screens.keyboard.add(window.kbDisplay);
