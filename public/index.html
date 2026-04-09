@@ -7,6 +7,15 @@
     <title>Pixel Platform Fighter</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="style.css">
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
 </head>
 
 <body>
@@ -17,71 +26,16 @@
             <p>This game is best played in Landscape mode.</p>
         </div>
 
-        <!-- Start Screen -->
-        <div id="start-screen" class="screen active">
-            <h1>Pixel Fighter</h1>
-            <button id="btn-start-game">Click to Start</button>
-        </div>
-
-        <!-- Main Menu -->
-        <div id="main-menu" class="screen">
-            <h1>Pixel Fighter</h1>
-            <div class="host-section">
-                <div class="input-group">
-                    <label for="game-mode">Mode:</label>
-                    <select id="game-mode">
-                        <option value="1v1">1 vs 1</option>
-                        <option value="deathmatch">Deathmatch</option>
-                    </select>
-                </div>
-                <div id="players-count-container" class="input-group" style="display: none;">
-                    <label for="max-players">Players:</label>
-                    <input type="number" id="max-players" min="3" max="4" value="3">
-                </div>
-                <button id="btn-host">Host Game</button>
-            </div>
-            <div class="join-section">
-                <input type="text" id="input-room-code" placeholder="4-Digit Code" maxlength="4">
-                <button id="btn-join">Join Game</button>
-            </div>
-            <button id="btn-fullscreen"
-                style="display: none; margin-top: 20px; background: #555; font-size: 10px;">Fullscreen</button>
-            <p id="menu-message"></p>
-        </div>
-
-        <!-- Lobby (Host waiting) -->
-        <div id="lobby-screen" class="screen">
-            <h2>Room Code: <span id="display-room-code">----</span></h2>
-            <p id="lobby-waiting-text">Waiting for Player 2...</p>
-        </div>
-
-        <!-- Character Select -->
-        <div id="character-select" class="screen">
-            <h2>Select Your Character</h2>
-            <div class="name-input-group">
-                <label for="player-name">Your Name:</label>
-                <input type="text" id="player-name" placeholder="Enter name" maxlength="12" autocomplete="off">
-            </div>
-            <div class="character-list">
-                <p>Loading characters...</p>
-            </div>
-            <p id="select-message">Waiting for opponents...</p>
-        </div>
-
-        <!-- Game HUD -->
-        <div id="game-hud" class="screen">
-            <div id="hud-container">
-                <!-- Dynamically populated -->
-            </div>
-        </div>
-
-        <!-- Game Over Screen -->
-        <div id="game-over-screen" class="screen">
-            <h1 id="game-over-title">Game Over</h1>
-            <button id="btn-game-over-ok">OK</button>
-        </div>
+        <!-- Hidden inputs for mapping keyboard to WebGL UI -->
+        <input type="text" id="hidden-room-code" maxlength="4" style="position:absolute; opacity:0; pointer-events:none;">
+        <input type="text" id="hidden-player-name" maxlength="12" style="position:absolute; opacity:0; pointer-events:none;">
     </div>
 
+    <!-- Mobile Controls from before, we might still want to capture their events overlayed, or redo them in WebGL -->
+    <!-- It's actually better to keep the touch layout and map it, but the user requested "menu and other interactions" to use TreeJS -->
+    <!-- So we'll try raycasting on screen for the dpad, but mapping it from HTML is significantly more performant and reliable for multi-touch. 
+         Let's keep DOM for mobile controller overlay since it's an invisible/semi-transparent control surface, but we can do WebGL too.
+         I'll keep mobile-controls for now to preserve touch multi-tap reliability, as it's hard in a single WebGL canvas doing manual multi-touch tracking. -->
     <div id="mobile-controls" style="display: none;">
         <div class="dpad">
             <button id="ctrl-up" class="ctrl-btn">▲</button>
@@ -96,9 +50,9 @@
         </div>
     </div>
 
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <canvas id="gameCanvas"></canvas>
 
-    <script src="game.js"></script>
+    <script type="module" src="game.js"></script>
 </body>
 
-</html>
+</html>

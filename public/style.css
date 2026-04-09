@@ -22,10 +22,13 @@ body {
 }
 
 #gameCanvas {
-    background-color: #87CEEB; /* Sky blue */
-    border: 0; /* Remove border for full screen fit */
-    image-rendering: pixelated; /* Crucial for pixel art */
-    display: none;
+    background-color: #111; 
+    border: 0;
+    image-rendering: pixelated;
+    display: block; /* Make sure it's visible now that it's handling everything */
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100dvw;
     height: 100dvh;
     object-fit: contain;
