@@ -9,7 +9,7 @@ const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
 
 // Menu Music
-const menuMusic = new Audio('/characters/menu_2.mp3');
+const menuMusic = new Audio('/songs/menu_2.mp3');
 menuMusic.loop = true;
 menuMusic.volume = 1;
 
@@ -18,21 +18,96 @@ menuMusic.addEventListener('error', (e) => {
     console.log("Attempted path: /characters/menu_2.mp3");
 });
 
+// Game Music Playlist (plays during battle)
+const gameMusicPlaylist = [
+    '/songs/game_1.mp3',
+    '/songs/game_2.mp3',
+    '/songs/game_3.mp3'
+];
+let gameMusicIndex = 0;
+let gameMusicAudio = null;
+let gameMusicGain = null;
+let gameMusicSource = null;
+let gameMusicPlaying = false;
+const FADE_IN_DURATION = 2; // seconds
+
+function startGameMusic() {
+    if (gameMusicPlaying) return;
+    gameMusicPlaying = true;
+    gameMusicIndex = 0;
+    playGameTrack(gameMusicIndex);
+}
+
+function playGameTrack(index) {
+    if (!gameMusicPlaying) return;
+
+    // Clean up previous track
+    if (gameMusicAudio) {
+        gameMusicAudio.pause();
+        gameMusicAudio.removeEventListener('ended', onGameTrackEnded);
+        gameMusicAudio.currentTime = 0;
+    }
+    if (gameMusicSource) {
+        try { gameMusicSource.disconnect(); } catch(e) {}
+        gameMusicSource = null;
+    }
+
+    // Create new audio element
+    gameMusicAudio = new Audio(gameMusicPlaylist[index]);
+    gameMusicAudio.loop = false;
+
+    // Connect through Web Audio API for fade control
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    gameMusicSource = audioCtx.createMediaElementSource(gameMusicAudio);
+    gameMusicGain = audioCtx.createGain();
+    gameMusicGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gameMusicGain.gain.linearRampToValueAtTime(1, audioCtx.currentTime + FADE_IN_DURATION);
+
+    gameMusicSource.connect(gameMusicGain);
+    gameMusicGain.connect(audioCtx.destination);
+
+    gameMusicAudio.addEventListener('ended', onGameTrackEnded);
+    gameMusicAudio.play().catch(e => console.warn('Game music play failed:', e));
+}
+
+function onGameTrackEnded() {
+    if (!gameMusicPlaying) return;
+    // Advance to next track, loop back to 0
+    gameMusicIndex = (gameMusicIndex + 1) % gameMusicPlaylist.length;
+    playGameTrack(gameMusicIndex);
+}
+
+function stopGameMusic() {
+    gameMusicPlaying = false;
+    if (gameMusicAudio) {
+        gameMusicAudio.pause();
+        gameMusicAudio.removeEventListener('ended', onGameTrackEnded);
+        gameMusicAudio.currentTime = 0;
+    }
+    if (gameMusicSource) {
+        try { gameMusicSource.disconnect(); } catch(e) {}
+        gameMusicSource = null;
+    }
+    gameMusicGain = null;
+    gameMusicAudio = null;
+    gameMusicIndex = 0;
+}
+
 function playHitSound() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
-    
+
     oscillator.type = 'square';
     oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
     oscillator.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
-    
+
     gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-    
+
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
-    
+
     oscillator.start();
     oscillator.stop(audioCtx.currentTime + 0.1);
 }
@@ -45,14 +120,22 @@ function updateMusic(screenName) {
 
     const menuScreens = ['menu', 'lobby', 'select', 'gameOver'];
     if (menuScreens.includes(screenName)) {
+        // Stop game music when returning to menus
+        stopGameMusic();
         if (menuMusic.paused) {
             menuMusic.play().catch(e => {
                 console.warn("Music play blocked or failed:", e);
             });
         }
+    } else if (screenName === 'hud') {
+        // Stop menu music, start game playlist
+        menuMusic.pause();
+        menuMusic.currentTime = 0;
+        startGameMusic();
     } else {
         menuMusic.pause();
         menuMusic.currentTime = 0;
+        stopGameMusic();
     }
 }
 
@@ -88,7 +171,7 @@ const screens = {
 // Logic is kept here, but stats and visuals are loaded from JSON
 const CHARACTERS = {
     ShadowAssassin: {
-        ultimateSkill: function(player) {
+        ultimateSkill: function (player) {
             // Teleport behind closest enemy
             let closestOther = null;
             let minDistance = Infinity;
@@ -101,11 +184,11 @@ const CHARACTERS = {
                     }
                 }
             });
-            
+
             if (closestOther) {
                 player.x = closestOther.facingRight ? closestOther.x - 40 : closestOther.x + closestOther.width + 10;
                 player.facingRight = closestOther.x > player.x;
-                
+
                 // Deal damage
                 ws.send(JSON.stringify({
                     type: 'ATTACK_HIT',
@@ -118,7 +201,7 @@ const CHARACTERS = {
         }
     },
     FrostMage: {
-        ultimateSkill: function(player) {
+        ultimateSkill: function (player) {
             // Blizzard storm (damages all)
             Object.keys(players).forEach(pid => {
                 if (pid !== player.id && players[pid].hp > 0) {
@@ -134,7 +217,7 @@ const CHARACTERS = {
         }
     },
     FlameBerserker: {
-        ultimateSkill: function(player) {
+        ultimateSkill: function (player) {
             // Inferno Rage (AoE damage)
             Object.keys(players).forEach(pid => {
                 if (pid !== player.id && players[pid].hp > 0) {
@@ -152,7 +235,7 @@ const CHARACTERS = {
         }
     },
     TechGuardian: {
-        ultimateSkill: function(player) {
+        ultimateSkill: function (player) {
             // Barrier Dome (Damages nearby)
             Object.keys(players).forEach(pid => {
                 if (pid !== player.id && players[pid].hp > 0) {
@@ -170,7 +253,7 @@ const CHARACTERS = {
         }
     },
     StormArcher: {
-        ultimateSkill: function(player) {
+        ultimateSkill: function (player) {
             // Thunder Rain (Global hit)
             Object.keys(players).forEach(pid => {
                 if (pid !== player.id && players[pid].hp > 0) {
@@ -197,10 +280,10 @@ async function loadCharacterData() {
             const response = await fetch(`/characters/${charKey}.json`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
-            
+
             // Merge JSON data into CHARACTERS object
             Object.assign(CHARACTERS[charKey], data);
-            
+
             // Preload idle sprite
             const img = new Image();
             if (data.visual?.sprites?.idle) {
@@ -220,40 +303,40 @@ async function loadCharacterData() {
 function renderCharacterCards() {
     const container = document.querySelector('.character-list');
     if (!container) return;
-    
+
     container.innerHTML = ''; // Clear existing
-    
+
     Object.keys(CHARACTERS).forEach(charKey => {
         const char = CHARACTERS[charKey];
         if (!char.name) return; // Skip if data not loaded
-        
+
         const card = document.createElement('div');
         card.className = 'char-card';
         card.dataset.char = charKey;
-        
+
         card.innerHTML = `
             <img src="/${char.visual?.icon || ''}" alt="${char.name} icon" style="width: 64px; height: 64px; margin-bottom: 10px; border: 2px solid ${char.visual?.themeColor || '#fff'};">
             <h3>${char.name}</h3>
             <p>${char.description || ''}</p>
             <div class="ult-name" data-tooltip="${char.ultimate?.description || ''}">Ult: ${char.ultimate?.name || ''}</div>
         `;
-        
+
         card.addEventListener('click', () => {
             document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
             myCharacter = charKey;
-            
+
             const playerName = document.getElementById('player-name').value.trim() || myPlayerId || 'Player';
-            
+
             ws.send(JSON.stringify({
                 type: 'SELECT_CHARACTER',
                 character: myCharacter,
                 playerName: playerName
             }));
-            
+
             document.getElementById('select-message').innerText = 'Ready! Waiting for opponent...';
         });
-        
+
         container.appendChild(card);
     });
 }
@@ -272,7 +355,7 @@ class Sprite {
         this.frameIndex = 0;
         this.lastFrameTime = 0;
         this.currentState = 'idle';
-        
+
         // Use preloaded idle sprite if available
         if (globalIdleSprites[characterName]) {
             this.images['idle'] = globalIdleSprites[characterName];
@@ -281,7 +364,7 @@ class Sprite {
         // Define states we want to load
         const states = ['idle', 'run', 'attack', 'ultimate'];
         let loadedCount = 0;
-        
+
         states.forEach(state => {
             // Skip idle if already set from global cache
             if (state === 'idle' && this.images['idle']) {
@@ -316,9 +399,9 @@ class Sprite {
 
         const img = this.images[state] || this.images['idle'];
         const spriteConfig = this.config.visual?.sprites?.[state] || this.config.visual?.sprites?.['idle'];
-        
+
         ctx.save();
-        
+
         // Flip context if facing left
         if (!facingRight) {
             ctx.translate(x + width, y);
@@ -332,7 +415,7 @@ class Sprite {
                 const frames = spriteConfig.frames;
                 const fps = spriteConfig.fps || 10;
                 const frameDuration = 1000 / fps;
-                
+
                 if (timestamp - this.lastFrameTime > frameDuration) {
                     this.frameIndex++;
                     if (this.frameIndex >= frames) {
@@ -340,10 +423,10 @@ class Sprite {
                     }
                     this.lastFrameTime = timestamp;
                 }
-                
+
                 const frameWidth = img.naturalWidth / frames;
                 const frameHeight = img.naturalHeight;
-                
+
                 ctx.drawImage(
                     img,
                     this.frameIndex * frameWidth, 0, frameWidth, frameHeight,
@@ -357,14 +440,14 @@ class Sprite {
             const color = this.config.visual?.themeColor || fallbackColor;
             ctx.fillStyle = color;
             ctx.fillRect(x, y, width, height);
-            
+
             // Draw a little eye to show direction
             ctx.fillStyle = 'white';
             ctx.fillRect(x + width - 15, y + 10, 10, 10);
             ctx.fillStyle = 'black';
             ctx.fillRect(x + width - 10, y + 15, 5, 5);
         }
-        
+
         ctx.restore();
     }
 }
@@ -436,7 +519,7 @@ class Player {
                 this.actionTimer = 15;
                 this.attackCooldown = 30; // ~0.5 seconds at 60fps
                 this.vx = 0; // Stop moving
-                
+
                 // Automatically face the closest opponent when attacking
                 let closestOpponent = null;
                 let minDistance = Infinity;
@@ -449,11 +532,11 @@ class Player {
                         }
                     }
                 });
-                
+
                 if (closestOpponent) {
                     this.facingRight = closestOpponent.x > this.x;
                 }
-                
+
                 this.checkAttackHit();
             }
 
@@ -467,7 +550,7 @@ class Player {
 
         // Apply Physics
         this.vy += GRAVITY;
-        
+
         // Apply horizontal friction if hit (stunned)
         if (this.hitTimer > 0) {
             this.vx *= 0.9;
@@ -499,14 +582,14 @@ class Player {
 
         Object.keys(players).forEach(otherId => {
             if (otherId === this.id) return;
-            
+
             const other = players[otherId];
             if (other && other.hp > 0) {
                 if (hitbox.x < other.x + other.width &&
                     hitbox.x + hitbox.width > other.x &&
                     hitbox.y < other.y + other.height &&
                     hitbox.y + hitbox.height > other.y) {
-                    
+
                     // Hit! Send to server
                     ws.send(JSON.stringify({
                         type: 'ATTACK_HIT',
@@ -529,31 +612,31 @@ class Player {
             const cy = this.y + this.height / 2;
             const progress = this.hitTimer / 15; // 1.0 to 0.0
             const radius = 30 + (1 - progress) * 20; // Expands from 30 to 50
-            
+
             // Impact glow
             ctx.globalCompositeOperation = 'lighter';
             const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
             gradient.addColorStop(0, `rgba(255, 255, 255, ${progress})`);
             gradient.addColorStop(0.3, `rgba(255, 50, 50, ${progress * 0.8})`);
             gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-            
+
             ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.arc(cx, cy, radius, 0, Math.PI * 2);
             ctx.fill();
-            
+
             // Impact spikes
             ctx.translate(cx, cy);
             ctx.rotate(progress * Math.PI); // Spin slightly
             ctx.beginPath();
-            for(let i=0; i<8; i++) {
+            for (let i = 0; i < 8; i++) {
                 ctx.lineTo(0, i % 2 === 0 ? radius * 1.2 : radius * 0.4);
                 ctx.rotate(Math.PI / 4);
             }
             ctx.closePath();
             ctx.fillStyle = `rgba(255, 255, 255, ${progress * 0.9})`;
             ctx.fill();
-            
+
             ctx.restore();
         }
 
@@ -571,34 +654,34 @@ class Player {
             ctx.lineWidth = 6;
             ctx.lineCap = 'round';
             ctx.beginPath();
-            
+
             const cx = this.facingRight ? this.x + this.width : this.x;
             const cy = this.y + this.height / 2;
-            
+
             const startAngle = -Math.PI / 2;
             const endAngle = this.facingRight ? startAngle + (Math.PI * progress) : startAngle - (Math.PI * progress);
-            
+
             ctx.arc(cx, cy, 35, startAngle, endAngle, !this.facingRight);
             ctx.stroke();
             ctx.restore();
         }
-        
+
         // Draw Ultimate Visuals
         if (this.action === 'ultimate') {
             if (this.config.id === 'FrostMage') {
                 ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y + this.height/2, 80 - this.actionTimer*2, 0, Math.PI*2);
+                ctx.arc(this.x + this.width / 2, this.y + this.height / 2, 80 - this.actionTimer * 2, 0, Math.PI * 2);
                 ctx.fillStyle = 'rgba(93, 173, 226, 0.5)';
                 ctx.fill();
             } else if (this.config.id === 'TechGuardian') {
                 ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y + this.height/2, 60, 0, Math.PI*2);
+                ctx.arc(this.x + this.width / 2, this.y + this.height / 2, 60, 0, Math.PI * 2);
                 ctx.strokeStyle = 'rgba(26, 188, 156, 0.8)';
                 ctx.lineWidth = 5;
                 ctx.stroke();
             } else if (this.config.id === 'FlameBerserker') {
                 ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y + this.height/2, 50, 0, Math.PI*2);
+                ctx.arc(this.x + this.width / 2, this.y + this.height / 2, 50, 0, Math.PI * 2);
                 ctx.strokeStyle = 'rgba(230, 126, 34, 0.8)';
                 ctx.lineWidth = 3;
                 ctx.stroke();
@@ -611,7 +694,7 @@ class Player {
 const keys = {};
 window.addEventListener('keydown', e => {
     // Prevent default scrolling for space and arrows
-    if(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.code) > -1) {
+    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.code) > -1) {
         e.preventDefault();
     }
     keys[e.key.toLowerCase()] = true;
@@ -691,8 +774,8 @@ async function lockOrientation() {
 // --- UI Functions ---
 function showScreen(screenName) {
     Object.values(screens).forEach(s => s.classList.remove('active'));
-    if(screens[screenName]) screens[screenName].classList.add('active');
-    
+    if (screens[screenName]) screens[screenName].classList.add('active');
+
     // Show/Hide mobile controls based on screen
     if (isMobile) {
         if (screenName === 'hud') {
@@ -704,7 +787,7 @@ function showScreen(screenName) {
 
     // Update music based on screen
     updateMusic(screenName);
-    
+
     // Update tab title based on screen
     const titles = {
         'menu': 'Main Menu - Pixel Fighter',
@@ -718,7 +801,7 @@ function showScreen(screenName) {
 
 function updateHUD() {
     const hudContainer = document.getElementById('hud-container');
-    
+
     // Ensure HUD elements exist for all players
     Object.keys(players).forEach(pid => {
         let playerHud = document.getElementById(`hud-${pid}`);
@@ -739,11 +822,11 @@ function updateHUD() {
             `;
             hudContainer.appendChild(playerHud);
         }
-        
+
         const p = players[pid];
         const pct = Math.max(0, (p.hp / p.maxHp) * 100);
         document.getElementById(`${pid}-hp-bar`).style.width = `${pct}%`;
-        
+
         const ultPct = p.ultimateCooldown > 0 ? (p.ultimateCooldown / p.maxUltimateCooldown) * 100 : 0;
         document.getElementById(`${pid}-ult-bar`).style.width = `${ultPct}%`;
         document.getElementById(`${pid}-ult-text`).innerText = p.ultimateCooldown > 0 ? `${Math.ceil(p.ultimateCooldown / 60)}s` : 'ULT READY';
@@ -798,7 +881,7 @@ function connectWebSocket() {
                     players[pid] = new Player(pid, s.x, s.y, CHARACTERS[s.character], s.playerName);
                     players[pid].facingRight = s.facingRight;
                 });
-                
+
                 showScreen('hud');
                 canvas.style.display = 'block';
                 gameState = 'PLAYING';
@@ -820,7 +903,7 @@ function connectWebSocket() {
                         if (players[pid] && data.hpData[pid] < players[pid].hp) {
                             players[pid].hitTimer = 15;
                             playHitSound();
-                            
+
                             // Apply knockback if it's me
                             if (myPlayerId === pid) {
                                 // Find closest opponent for knockback direction
@@ -835,7 +918,7 @@ function connectWebSocket() {
                                         }
                                     }
                                 });
-                                
+
                                 if (closestOpponent) {
                                     const dir = players[pid].x > closestOpponent.x ? 1 : -1;
                                     players[pid].vx = dir * 8;
@@ -891,7 +974,7 @@ document.getElementById('btn-host').addEventListener('click', () => {
     if (gameMode === 'deathmatch') {
         maxPlayers = parseInt(document.getElementById('max-players').value, 10);
     }
-    
+
     connectWebSocket();
     ws.onopen = () => ws.send(JSON.stringify({ type: 'HOST', gameMode, maxPlayers }));
 });
@@ -913,12 +996,12 @@ document.getElementById('btn-game-over-ok').addEventListener('click', () => {
     roomCode = null;
     myCharacter = null;
     gameState = 'MENU';
-    
+
     // Reset UI
     document.getElementById('select-message').innerText = 'Waiting for opponent...';
     document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
     document.getElementById('hud-container').innerHTML = ''; // Clear dynamic HUD
-    
+
     showScreen('menu');
 });
 
@@ -952,7 +1035,7 @@ function gameLoop(timestamp) {
             lastSync = timestamp;
         }
     }
-    
+
     // Update Remote Player Timers
     Object.keys(players).forEach(pid => {
         if (pid !== myPlayerId) {
@@ -976,7 +1059,7 @@ async function init() {
     await loadCharacterData();
     setupMobileControls();
     showScreen('start');
-    
+
     // Start music and lock orientation on first interaction
     document.getElementById('btn-start-game').addEventListener('click', () => {
         showScreen('menu');
