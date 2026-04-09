@@ -11,8 +11,8 @@
     <script type="importmap">
     {
         "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            "three": "/node_modules/three/build/three.module.js",
+            "three/addons/": "/node_modules/three/examples/jsm/"
         }
     }
     </script>
@@ -27,8 +27,8 @@
         </div>
 
         <!-- Hidden inputs for mapping keyboard to WebGL UI -->
-        <input type="text" id="hidden-room-code" maxlength="4" style="position:absolute; opacity:0; pointer-events:none;">
-        <input type="text" id="hidden-player-name" maxlength="12" style="position:absolute; opacity:0; pointer-events:none;">
+        <input type="text" id="hidden-room-code" maxlength="4" style="position:absolute; top:0; left:0; width:1px; height:1px; opacity:0; border:none; padding:0; margin:0; pointer-events:none;">
+        <input type="text" id="hidden-player-name" maxlength="12" style="position:absolute; top:0; left:0; width:1px; height:1px; opacity:0; border:none; padding:0; margin:0; pointer-events:none;">
     </div>
 
     <!-- Mobile Controls from before, we might still want to capture their events overlayed, or redo them in WebGL -->

@@ -98,6 +98,8 @@ let roomCode = null;
 let players = {};
 let myCharacter = null;
 let gameMode = '1v1';
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const keys = {};
 let maxPlayers = 3;
 
 const CHARACTERS = {
@@ -125,12 +127,13 @@ async function loadCharacterData() {
 }
 
 // --- Three.js Setup ---
+console.log("Initializing Three.js...");
 const canvas = document.getElementById('gameCanvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.pixelRatio = window.devicePixelRatio;
 
-const camera = new THREE.OrthographicCamera(0, window.innerWidth, window.innerHeight, 0, 0.1, 1000);
+const camera = new THREE.OrthographicCamera(0, 800, 0, 600, 0.1, 1000);
 camera.position.z = 100;
 
 const scene = new THREE.Scene();
@@ -156,7 +159,7 @@ Object.values(screens).forEach(s => {
 
 const texLoader = new THREE.TextureLoader();
 
-function createUIButton(text, w, h, bg, x, y, onClick) {
+function createUIButton(text, w, h, bg, x, y, onClick, onDown, onUp) {
     const cvs = document.createElement('canvas');
     cvs.width = w; cvs.height = h;
     const cctx = cvs.getContext('2d');
@@ -166,18 +169,17 @@ function createUIButton(text, w, h, bg, x, y, onClick) {
     cctx.lineWidth = 4;
     cctx.strokeRect(0, 0, w, h);
     cctx.fillStyle = '#fff';
-    // Use a basic fallback font if Press Start 2P isn't ready
     cctx.font = `14px "Press Start 2P", monospace`;
     cctx.textAlign = 'center'; cctx.textBaseline = 'middle';
     cctx.fillText(text, w/2, h/2);
 
     const tex = new THREE.CanvasTexture(cvs);
+    tex.flipY = false;
     tex.magFilter = THREE.NearestFilter;
-    const mat = new THREE.MeshBasicMaterial({ map: tex });
+    const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
-    // Align top-left coordinate to geometry center (e.g. x + w/2)
     mesh.position.set(x + w/2, y + h/2, 10);
-    mesh.userData = { onClick };
+    mesh.userData = { onClick, onDown, onUp };
     return mesh;
 }
 
@@ -191,8 +193,9 @@ function createUIText(text, size, color, w, h, x, y) {
     cctx.fillText(text, w/2, h/2);
 
     const tex = new THREE.CanvasTexture(cvs);
+    tex.flipY = false;
     tex.magFilter = THREE.NearestFilter;
-    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
     mesh.position.set(x + w/2, y + h/2, 5);
     
@@ -275,6 +278,18 @@ hiddenName.addEventListener('input', () => {
 const selStatus = createUIText("Waiting...", 16, "#ccc", 800, 50, 0, 500);
 screens.select.add(selStatus);
 
+// Build HUD
+if (isMobile) {
+    // D-Pad
+    screens.hud.add(createUIButton("▲", 60, 60, "rgba(255,255,255,0.2)", 100, 400, null, () => keys['arrowup'] = true, () => keys['arrowup'] = false));
+    screens.hud.add(createUIButton("◀", 60, 60, "rgba(255,255,255,0.2)", 30, 470, null, () => keys['arrowleft'] = true, () => keys['arrowleft'] = false));
+    screens.hud.add(createUIButton("▶", 60, 60, "rgba(255,255,255,0.2)", 170, 470, null, () => keys['arrowright'] = true, () => keys['arrowright'] = false));
+    
+    // Actions
+    screens.hud.add(createUIButton("A", 80, 80, "rgba(231,76,60,0.3)", 650, 450, null, () => keys[' '] = true, () => keys[' '] = false));
+    screens.hud.add(createUIButton("U", 80, 80, "rgba(241,196,15,0.3)", 550, 450, null, () => keys['e'] = true, () => keys['e'] = false));
+}
+
 function buildCharacterSelectUI() {
     let xOffset = 25;
     Object.keys(CHARACTERS).forEach(charKey => {
@@ -300,19 +315,19 @@ screens.gameOver.add(createUIButton("OK", 150, 50, "#3498db", 325, 350, () => {
 }));
 
 // Game World
-const floorMat = new THREE.MeshBasicMaterial({ color: 0x27ae60 });
+const floorMat = new THREE.MeshBasicMaterial({ color: 0x27ae60, side: THREE.DoubleSide });
 const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(800, 600 - FLOOR_Y), floorMat);
 floorMesh.position.set(400, FLOOR_Y + (600 - FLOOR_Y)/2, 0);
 screens.gameWorld.add(floorMesh);
 
 class Sprite {
     constructor(charKey) {
-        this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(50, 70), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true }));
+        this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(50, 70), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, side: THREE.DoubleSide }));
         this.texMap = {};
         this.config = CHARACTERS[charKey] || {};
         const states = ['idle', 'run', 'attack', 'ultimate'];
         states.forEach(s => {
-            const src = this.config.visual?.sprites?.[s]?.src || `sprites/${charKey}_${s}.svg`;
+            const src = this.config.visual?.sprites?.[s]?.src || `sprites/${charKey.toLowerCase().split(' ')[0]}_${s}.svg`;
             if(src) {
                 texLoader.load('/' + src, tex => {
                     tex.minFilter = THREE.NearestFilter;
@@ -341,18 +356,21 @@ class Player {
         this.hp = 100; this.maxHp = 100;
         this.facingRight = true; this.action = 'idle';
         this.actionTimer = 0; this.hitTimer = 0;
+        this.ultimateCooldown = 0; this.attackCooldown = 0;
         this.sprite = new Sprite(charConfig.id || "ShadowAssassin");
         screens.gameWorld.add(this.sprite.mesh);
 
         this.nameMesh = createUIText(playerName || id, 10, "#fff", 150, 20, 0, 0);
         screens.gameWorld.add(this.nameMesh);
         
-        this.hpMesh = new THREE.Mesh(new THREE.PlaneGeometry(50, 5), new THREE.MeshBasicMaterial({ color: 0x2ecc71 }));
+        this.hpMesh = new THREE.Mesh(new THREE.PlaneGeometry(50, 5), new THREE.MeshBasicMaterial({ color: 0x2ecc71, side: THREE.DoubleSide }));
         screens.gameWorld.add(this.hpMesh);
     }
     
     update() {
         if (this.hitTimer > 0) this.hitTimer--;
+        if (this.ultimateCooldown > 0) this.ultimateCooldown--;
+        if (this.attackCooldown > 0) this.attackCooldown--;
         if (this.actionTimer > 0) {
             this.actionTimer--;
             if (this.actionTimer === 0) this.action = 'idle';
@@ -394,6 +412,7 @@ function showScreen(name) {
     
     if (name === 'gameWorld' || name === 'hud') {
         screens.gameWorld.visible = true;
+        screens.hud.visible = true;
         scene.background = new THREE.Color(0x87CEEB);
         menuMusic.pause();
         startGameMusic();
@@ -404,9 +423,24 @@ function showScreen(name) {
     }
 }
 
-const keys = {};
-window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+window.addEventListener('keydown', e => { 
+    keys[e.key.toLowerCase()] = true; 
+    // If in menu and user starts typing numbers, focus room code
+    if (gameState === 'MENU' && screens.menu.visible && /^[0-9]$/.test(e.key) && document.activeElement !== hiddenCode) {
+        hiddenCode.focus();
+    }
+    // If in character select and user starts typing, focus player name
+    if (gameState === 'MENU' && screens.select.visible && /^[a-zA-Z0-9]$/.test(e.key) && document.activeElement !== hiddenName) {
+        hiddenName.focus();
+    }
+});
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+function clearKeys() {
+    Object.keys(keys).forEach(k => keys[k] = false);
+}
+window.addEventListener('pointerup', clearKeys);
+window.addEventListener('pointerleave', clearKeys);
 
 window.addEventListener('pointerdown', e => {
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -415,27 +449,54 @@ window.addEventListener('pointerdown', e => {
     raycaster.setFromCamera(pointer, camera);
     const visibleScreens = Object.values(screens).filter(s => s.visible);
     let intersects = [];
-    visibleScreens.forEach(s => {
-        intersects = intersects.concat(raycaster.intersectObjects(s.children, true));
-    });
+    // Only intersect with the top-most visible screen to save performance
+    for (let i = visibleScreens.length - 1; i >= 0; i--) {
+        const s = visibleScreens[i];
+        intersects = raycaster.intersectObjects(s.children, true);
+        if (intersects.length > 0) break;
+    }
 
     if (intersects.length > 0) {
         for(let i=0; i<intersects.length; i++){
             const obj = intersects[i].object;
-            if (obj.userData && obj.userData.onClick) {
-                obj.userData.onClick();
+            if (obj.userData) {
+                if (obj.userData.onClick) obj.userData.onClick();
+                if (obj.userData.onDown) obj.userData.onDown();
+                obj.userData.isDown = true;
                 break;
             }
         }
     }
 });
 
+window.addEventListener('pointerup', e => {
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+    const visibleScreens = Object.values(screens).filter(s => s.visible);
+    visibleScreens.forEach(s => {
+        s.children.forEach(obj => {
+            if (obj.userData && obj.userData.isDown) {
+                if (obj.userData.onUp) obj.userData.onUp();
+                obj.userData.isDown = false;
+            }
+        });
+    });
+    clearKeys();
+});
+
+let lastWidth = 0, lastHeight = 0;
 function resize() {
+    if (window.innerWidth === 0 || window.innerHeight === 0) return;
+    if (window.innerWidth === lastWidth && window.innerHeight === lastHeight) return;
+    
+    lastWidth = window.innerWidth;
+    lastHeight = window.innerHeight;
+    
     renderer.setSize(window.innerWidth, window.innerHeight);
     const aspect = window.innerWidth / window.innerHeight;
     
-    // We want to fit 800x600 in the screen while maintaining original coordinates.
-    // The play area is 800x600. Let's letterbox.
     const targetAspect = CANVAS_WIDTH / CANVAS_HEIGHT;
     if (aspect >= targetAspect) { // Window is wider
         const width = CANVAS_HEIGHT * aspect;
@@ -515,7 +576,10 @@ function connectWebSocket() {
 }
 
 let lastSync = 0;
+let frameCount = 0;
 renderer.setAnimationLoop((time) => {
+    frameCount++;
+    
     if (gameState === 'PLAYING') {
         const myP = players[myPlayerId];
         if (myP && myP.hp > 0) {
@@ -523,9 +587,10 @@ renderer.setAnimationLoop((time) => {
             if ((keys['a'] || keys['arrowleft']) && myP.hitTimer===0) { myP.vx = -5; myP.facingRight=false; myP.action='run'; }
             if ((keys['d'] || keys['arrowright']) && myP.hitTimer===0) { myP.vx = 5; myP.facingRight=true; myP.action='run'; }
             if ((keys['w'] || keys['arrowup']) && myP.y >= FLOOR_Y - 70 && myP.hitTimer===0) { myP.vy = -12; }
-            if (keys[' '] && myP.hitTimer===0) { 
+            if (keys[' '] && myP.hitTimer===0 && myP.attackCooldown === 0) { 
                 myP.action='attack'; 
                 myP.actionTimer = 15; 
+                myP.attackCooldown = 30;
                 // send hit
                 const target = Object.keys(players).find(id=>id!==myPlayerId);
                 if (target) {
@@ -536,7 +601,12 @@ renderer.setAnimationLoop((time) => {
                     }));
                 }
             }
-            if (keys['e'] && myP.hitTimer===0) { myP.action='ultimate'; myP.actionTimer=20; }
+            if (keys['e'] && myP.hitTimer===0 && myP.ultimateCooldown === 0) { 
+                myP.vx = 0;
+                if (myP.config.ultimateSkill) myP.config.ultimateSkill(myP);
+                else { myP.action='ultimate'; myP.actionTimer=20; }
+                myP.ultimateCooldown = 100; // placeholder
+            }
             if (myP.vx===0 && myP.action!=='attack' && myP.action!=='ultimate') myP.action = 'idle';
 
             if (time - lastSync > 33) {
@@ -561,3 +631,21 @@ renderer.setAnimationLoop((time) => {
 
 loadCharacterData();
 showScreen('start');
+
+document.fonts.ready.then(() => {
+    Object.values(screens).forEach(s => {
+        s.children.forEach(obj => {
+            if (obj.userData && obj.userData.tex) {
+                updateUIText(obj, obj.userData.cvs.getContext('2d').measureText("").width === 0 ? "" : ""); // Trigger redraw
+                // Actually, let's just rebuild the UI or force update
+                if (obj.userData.onClick || obj.userData.onDown) {
+                    // It's a button, redraw it
+                    const ctx = obj.userData.cvs.getContext('2d');
+                    // We don't have the original text stored easily for buttons, 
+                    // but we can just set needsUpdate and hope for the best if it was already drawn.
+                    // Better: updateUIText already does this for text meshes.
+                }
+            }
+        });
+    });
+});
